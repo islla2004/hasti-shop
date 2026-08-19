@@ -154,9 +154,21 @@ function InfoVal({ value, ltr, address }) {
   );
 }
 
+function stripSecrets(user) {
+  if (!user || typeof user !== 'object') return user;
+  const { password, passwordConfirm, ...safe } = user;
+  return safe;
+}
+
 function loadUser() {
   try {
-    return JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+    const raw = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+    if (!raw) return null;
+    const safe = stripSecrets(raw);
+    if (raw.password || raw.passwordConfirm) {
+      localStorage.setItem(USER_KEY, JSON.stringify(safe));
+    }
+    return safe;
   } catch {
     return null;
   }
@@ -216,9 +228,10 @@ export default function ProfilePage() {
   };
 
   const persist = (next) => {
-    localStorage.setItem(USER_KEY, JSON.stringify(next));
-    setUser(next);
-    setForm((f) => ({ ...f, ...next }));
+    const safe = stripSecrets(next);
+    localStorage.setItem(USER_KEY, JSON.stringify(safe));
+    setUser(safe);
+    setForm((f) => ({ ...f, ...safe, password: '', passwordConfirm: '' }));
   };
 
   const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
@@ -329,7 +342,7 @@ export default function ProfilePage() {
     if (!passForm.current || !passForm.next || !passForm.confirm) { showToast('تمام فیلدها را پر کنید', 'error'); return; }
     if (passForm.next.length < 8) { showToast('رمز جدید حداقل ۸ کاراکتر باشد', 'error'); return; }
     if (passForm.next !== passForm.confirm) { showToast('رمزهای جدید یکسان نیستند', 'error'); return; }
-    persist({ ...user, password: passForm.next });
+    persist(user);
     setPassForm({ current: '', next: '', confirm: '' });
     showToast('رمز عبور با موفقیت تغییر کرد', 'success');
   };

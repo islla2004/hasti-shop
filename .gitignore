@@ -17,6 +17,19 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# Legacy HTML prototypes and assets outside the React app
+/*.html
+/*.css
+/*.jpg
+/*.jpeg
+/*.png
+/*.webp
+/*.gif
+/*.svg
+/*.psd
+/admin/**/*.html
+/admin/**/*.css
+
 # OS / editor junk
 .DS_Store
 Thumbs.db

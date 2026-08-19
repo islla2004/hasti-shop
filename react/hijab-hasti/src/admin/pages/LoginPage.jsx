@@ -4,8 +4,8 @@ import { Admin } from '../adminShared.js';
 import { dataService } from '../data/dataService.js';
 import '../../styles/admin-shared.css';
 
-const DEMO_PHONE = '09152500553';
-const DEMO_PASSWORD = 'hasti1403';
+const DEMO_PHONE = import.meta.env.VITE_ADMIN_DEMO_PHONE || '';
+const DEMO_PASSWORD = import.meta.env.VITE_ADMIN_DEMO_PASSWORD || '';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -48,13 +48,17 @@ export default function LoginPage() {
   const onSubmit = (e) => {
     e.preventDefault();
     const normalized = Admin.toEn(phone).replace(/\D/g, '');
+    if (!DEMO_PHONE || !DEMO_PASSWORD) {
+      setError('ورود آزمایشی پیکربندی نشده است. فایل .env را از روی .env.example بسازید.');
+      return;
+    }
     if (!/^09\d{9}$/.test(normalized)) { setError('شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.'); return; }
     if (password.length < 6) { setError('رمز عبور باید حداقل ۶ کاراکتر باشد.'); return; }
     if (Admin.toEn(security).replace(/\D/g, '') !== challenge) { setError('کد امنیتی واردشده صحیح نیست.'); return; }
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      if (normalized === DEMO_PHONE && password === DEMO_PASSWORD) {
+      if (normalized === Admin.toEn(DEMO_PHONE).replace(/\D/g, '') && password === DEMO_PASSWORD) {
         if (remember) localStorage.setItem('hasti_admin_remember', '1');
         sessionStorage.setItem('hasti_admin_session', 'demo');
         const next = params.get('next');
