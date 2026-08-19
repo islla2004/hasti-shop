@@ -27,8 +27,6 @@ pnpm-debug.log*
 /*.gif
 /*.svg
 /*.psd
-/admin/**/*.html
-/admin/**/*.css
 /پرامپت-پنل-مدیریت-هستی.md
 
 # OS / editor junk

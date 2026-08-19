@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="تیکت پشتیبانی، پیام تماس، درخواست موجودی و خبرنامه فروشگاه هستی">
+  <meta name="robots" content="noindex, nofollow">
+  <title>پیام‌ها و تیکت | پنل مدیریت هستی</title>
+  <link rel="stylesheet" href="assets/admin-shared.css">
+</head>
+
+<body>
+  <a href="#main" class="skip-link">پرش به محتوای اصلی</a>
+
+  <main class="admin-main">
+    <div class="admin-body" id="main">
+
+      <div class="page-head">
+        <div>
+          <nav class="breadcrumb" aria-label="مسیر صفحه">
+            <a href="index.html">داشبورد</a>
+            <span aria-hidden="true">/</span>
+            <span>پیام‌ها و تیکت</span>
+          </nav>
+          <h1 class="page-title">پیام‌ها و تیکت</h1>
+          <p class="page-sub">
+            همه کانال‌های ارتباطی مشتری در یک صفحه — تیکت پشتیبانی، فرم تماس،
+            درخواست اطلاع از موجودی و مشترکین خبرنامه.
+          </p>
+        </div>
+        <div class="page-head__actions">
+          <a class="btn btn--ghost btn--sm" href="https://wa.me/989152500553" target="_blank" rel="noopener">
+            واتساپ فروشگاه
+          </a>
+          <button class="btn btn--gold btn--sm" type="button" id="exportBtn">
+            برون‌بری تب فعال
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid--kpi mb-3" id="messageKpis"></div>
+
+      <div class="tabs mb-3" id="mainTabs">
+        <button class="tab tab--active" type="button" data-panel="tickets" aria-pressed="true">
+          تیکت پشتیبانی<span class="tab__count" id="cntTickets">۰</span>
+        </button>
+        <button class="tab" type="button" data-panel="contact" aria-pressed="false">
+          پیام تماس با ما<span class="tab__count" id="cntContact">۰</span>
+        </button>
+        <button class="tab" type="button" data-panel="restock" aria-pressed="false">
+          درخواست موجودی<span class="tab__count" id="cntRestock">۰</span>
+        </button>
+        <button class="tab" type="button" data-panel="newsletter" aria-pressed="false">
+          خبرنامه<span class="tab__count" id="cntNewsletter">۰</span>
+        </button>
+      </div>
+
+      <section class="tab-panel tab-panel--active" data-panel="tickets">
+        <div class="card">
+          <div id="ticketTable"></div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="contact">
+        <div class="card">
+          <div id="contactTable"></div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="restock">
+        <div class="notice notice--gold mb-3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+          </svg>
+          <div>
+            <b>درخواست‌های آماده اطلاع‌رسانی</b>
+            <div class="text-sm">
+              محصولاتی که مشتری منتظرشان بوده و اکنون موجود شده‌اند، با دکمه «اطلاع‌رسانی گروهی» قابل پیگیری هستند.
+            </div>
+          </div>
+        </div>
+        <div class="grid grid--2 mb-3" id="restockGroups"></div>
+        <div class="card">
+          <div id="restockTable"></div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="newsletter">
+        <div class="card">
+          <div id="newsletterTable"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="assets/data/mock-data.js"></script>
+  <script src="assets/admin-shared.js"></script>
+  <script src="assets/data/dataService.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var tickets = [], messages = [], restock = [], newsletter = [];
+      var ticketApi = null, contactApi = null, restockApi = null, newsApi = null;
+      var activePanel = 'tickets';
+
+      var PRIORITY = {
+        urgent: { label: 'فوری', tone: 'danger', icon: 'alert' },
+        high: { label: 'بالا', tone: 'warning', icon: 'trendUp' },
+        normal: { label: 'عادی', tone: 'info', icon: 'info' },
+        low: { label: 'کم', tone: 'neutral', icon: 'minus' }
+      };
+      var PRIORITY_ORDER = { urgent: 4, high: 3, normal: 2, low: 1 };
+      var TICKET_STATUS = {
+        open: { label: 'باز', tone: 'warning', icon: 'clock' },
+        in_progress: { label: 'در حال بررسی', tone: 'info', icon: 'refresh' },
+        closed: { label: 'بسته', tone: 'neutral', icon: 'checkCircle' }
+      };
+      var CHANNEL = { sms: 'پیامک', email: 'ایمیل' };
+
+      (async function init() {
+        await Admin.shell('messages');
+        Admin.tableSkeleton('#ticketTable', 6);
+
+        await loadAll();
+
+        renderKpis();
+        buildTicketTable();
+        buildContactTable();
+        buildRestockTable();
+        renderRestockGroups();
+        buildNewsletterTable();
+        bindTabs();
+
+        document.getElementById('exportBtn').addEventListener('click', exportActive);
+      })();
+
+      async function loadAll() {
+        var res = await Promise.all([
+          dataService.getTickets(),
+          dataService.getContactMessages(),
+          dataService.getRestockRequests(),
+          dataService.getNewsletter()
+        ]);
+        tickets = res[0];
+        messages = res[1];
+        restock = res[2];
+        newsletter = res[3];
+
+        document.getElementById('cntTickets').textContent =
+          Admin.fa(tickets.filter(function (t) { return t.status !== 'closed'; }).length);
+        document.getElementById('cntContact').textContent =
+          Admin.fa(messages.filter(function (m) { return !m.read; }).length);
+        document.getElementById('cntRestock').textContent =
+          Admin.fa(restock.filter(function (r) { return !r.notified; }).length);
+        document.getElementById('cntNewsletter').textContent =
+          Admin.fa(newsletter.filter(function (n) { return n.active; }).length);
+      }
+
+      /* ============================== تب‌ها ============================= */
+      function bindTabs() {
+        var tabs = document.querySelectorAll('#mainTabs .tab');
+        tabs.forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            var key = tab.getAttribute('data-panel');
+            activePanel = key;
+
+            tabs.forEach(function (t) {
+              var on = t === tab;
+              t.classList.toggle('tab--active', on);
+              t.setAttribute('aria-pressed', String(on));
+            });
+
+            document.querySelectorAll('.tab-panel').forEach(function (p) {
+              p.classList.toggle('tab-panel--active', p.getAttribute('data-panel') === key);
+            });
+          });
+        });
+      }
+
+      /* ============================== KPI ها ============================ */
+      function renderKpis() {
+        var open = tickets.filter(function (t) { return t.status === 'open'; });
+        var urgent = tickets.filter(function (t) {
+          return t.status !== 'closed' && (t.priority === 'urgent' || t.priority === 'high');
+        });
+        var unread = messages.filter(function (m) { return !m.read; });
+        var ready = restock.filter(function (r) { return !r.notified && r.inStockNow; });
+
+        var cards = [
+          {
+            label: 'تیکت باز', value: Admin.fa(open.length), unit: 'تیکت',
+            icon: 'ticket', tone: open.length ? 'warning' : 'success',
+            note: Admin.fa(urgent.length) + ' تیکت با اولویت بالا'
+          },
+          {
+            label: 'پیام خوانده‌نشده', value: Admin.fa(unread.length), unit: 'پیام',
+            icon: 'mail', tone: unread.length ? 'info' : 'success',
+            note: 'از فرم تماس با ما'
+          },
+          {
+            label: 'آماده اطلاع‌رسانی', value: Admin.fa(ready.length), unit: 'درخواست',
+            icon: 'bell', tone: ready.length ? 'danger' : 'success',
+            note: 'محصول موجود شده و مشتری منتظر است'
+          },
+          {
+            label: 'مشترک خبرنامه', value: Admin.fa(newsletter.filter(function (n) { return n.active; }).length),
+            unit: 'مشترک', icon: 'inbox', tone: '',
+            note: Admin.fa(newsletter.filter(function (n) { return !n.active; }).length) + ' لغو اشتراک'
+          }
+        ];
+
+        document.getElementById('messageKpis').innerHTML = cards.map(function (c, i) {
+          return '<article class="kpi reveal" style="animation-delay:' + (i * 50) + 'ms">' +
+            '<div class="kpi__top"><span class="kpi__label">' + Admin.escapeHtml(c.label) + '</span>' +
+            '<span class="kpi__icon' + (c.tone ? ' kpi__icon--' + c.tone : '') + '">' + Admin.icon(c.icon) + '</span></div>' +
+            '<div class="kpi__value">' + c.value + '<small>' + c.unit + '</small></div>' +
+            '<div class="kpi__foot"><span>' + Admin.escapeHtml(c.note) + '</span></div>' +
+            '</article>';
+        }).join('');
+      }
+
+      /* ============================ جدول تیکت ========================== */
+      function buildTicketTable() {
+        ticketApi = Admin.table({
+          mount: '#ticketTable',
+          rows: tickets,
+          rowKey: 'id',
+          pageSize: 8,
+          searchKeys: ['subject', 'customerName', 'customerPhone'],
+          searchPlaceholder: 'جست‌وجو با موضوع، نام یا شماره مشتری…',
+          defaultSort: { key: 'priority', dir: 'desc' },
+          filters: [
+            {
+              key: 'status', label: 'وضعیت',
+              options: [
+                { value: 'open', label: 'باز' },
+                { value: 'in_progress', label: 'در حال بررسی' },
+                { value: 'closed', label: 'بسته' }
+              ]
+            },
+            {
+              key: 'priority', label: 'اولویت',
+              options: [
+                { value: 'urgent', label: 'فوری' },
+                { value: 'high', label: 'بالا' },
+                { value: 'normal', label: 'عادی' },
+                { value: 'low', label: 'کم' }
+              ]
+            },
+            {
+              key: 'assignedTo', label: 'مسئول',
+              options: [{ value: '__none', label: 'تخصیص‌نیافته' }].concat(uniqueAssignees()),
+              match: function (t, v) {
+                return v === '__none' ? !t.assignedTo : t.assignedTo === v;
+              }
+            }
+          ],
+          empty: {
+            icon: 'ticket',
+            title: 'تیکتی ثبت نشده است',
+            desc: 'تیکت‌های ارسالی مشتریان از حساب کاربری در این جدول نمایش داده می‌شوند.'
+          },
+          columns: [
+            {
+              key: 'subject', label: 'موضوع', sortable: true,
+              render: function (t) {
+                var last = t.messages[t.messages.length - 1];
+                return '<div style="max-width:300px"><b class="text-sm">' + Admin.escapeHtml(t.subject) + '</b>' +
+                  '<div class="cell-sub">' + Admin.escapeHtml(
+                    last.text.length > 60 ? last.text.slice(0, 60) + '…' : last.text) + '</div></div>';
+              }
+            },
+            {
+              key: 'customerName', label: 'مشتری', sortable: true,
+              render: function (t) {
+                return '<div><a href="customer-detail.html?id=' + encodeURIComponent(t.customerId) + '">' +
+                  '<b class="text-sm">' + Admin.escapeHtml(t.customerName) + '</b></a>' +
+                  '<div class="cell-sub ltr">' + Admin.fa(t.customerPhone) + '</div></div>';
+              }
+            },
+            {
+              key: 'priority', label: 'اولویت', sortable: true,
+              sortValue: function (t) { return PRIORITY_ORDER[t.priority] || 0; },
+              render: function (t) {
+                var p = PRIORITY[t.priority] || PRIORITY.normal;
+                return Admin.badge(p.label, p.tone, p.icon);
+              }
+            },
+            {
+              key: 'assignedTo', label: 'مسئول', sortable: true,
+              render: function (t) {
+                return t.assignedTo
+                  ? '<span class="text-sm">' + Admin.escapeHtml(t.assignedTo) + '</span>'
+                  : Admin.badge('تخصیص‌نیافته', 'warning', 'user');
+              }
+            },
+            {
+              key: 'createdAt', label: 'تاریخ ثبت', sortable: true,
+              render: function (t) { return Admin.jShort(t.createdAt); }
+            },
+            {
+              key: 'messages', label: 'پیام', className: 'num',
+              render: function (t) { return '<b>' + Admin.fa(t.messages.length) + '</b>'; }
+            },
+            {
+              key: 'status', label: 'وضعیت', sortable: true,
+              render: function (t) {
+                var s = TICKET_STATUS[t.status] || TICKET_STATUS.open;
+                return Admin.badge(s.label, s.tone, s.icon);
+              }
+            },
+            {
+              key: 'actions', label: 'عملیات', className: 'col-actions',
+              render: function (t) {
+                var out = '<div class="cell-actions">';
+                out += '<button class="act-btn" type="button" data-open="' + t.id + '" ' +
+                  'title="گفت‌وگو" aria-label="مشاهده گفت‌وگو">' + Admin.icon('message') + '</button>';
+                out += '<a class="act-btn" href="' +
+                  Admin.whatsappLink(t.customerPhone, 'سلام ' + t.customerName + '، درباره تیکت «' + t.subject + '»') +
+                  '" target="_blank" rel="noopener" title="واتساپ" aria-label="پاسخ در واتساپ">' +
+                  Admin.icon('whatsapp') + '</a>';
+                if (t.status !== 'closed') {
+                  out += '<button class="act-btn" type="button" data-close-ticket="' + t.id + '" ' +
+                    'title="بستن تیکت" aria-label="بستن تیکت">' + Admin.icon('checkCircle') + '</button>';
+                }
+                return out + '</div>';
+              }
+            }
+          ]
+        });
+
+        document.getElementById('ticketTable').addEventListener('click', async function (e) {
+          var open = e.target.closest('[data-open]');
+          var closeBtn = e.target.closest('[data-close-ticket]');
+
+          if (open) ticketDialog(findTicket(open.getAttribute('data-open')));
+
+          if (closeBtn) {
+            await dataService.updateTicket(closeBtn.getAttribute('data-close-ticket'), { status: 'closed' });
+            await refresh();
+            Admin.toast('تیکت بسته شد');
+          }
+        });
+      }
+
+      function uniqueAssignees() {
+        var seen = {};
+        tickets.forEach(function (t) { if (t.assignedTo) seen[t.assignedTo] = true; });
+        return Object.keys(seen).map(function (a) { return { value: a, label: a }; });
+      }
+
+      function findTicket(id) {
+        return tickets.filter(function (t) { return t.id === id; })[0];
+      }
+
+      function ticketDialog(t) {
+        var s = TICKET_STATUS[t.status] || TICKET_STATUS.open;
+        var p = PRIORITY[t.priority] || PRIORITY.normal;
+
+        var thread = t.messages.map(function (m) {
+          var isAdmin = m.from === 'admin';
+          return '<div class="timeline__item' + (isAdmin ? ' timeline__item--done' : '') + '">' +
+            '<b>' + (isAdmin ? 'پاسخ پشتیبانی' : Admin.escapeHtml(t.customerName)) + '</b>' +
+            '<small>' + Admin.jShort(m.at) + '</small>' +
+            '<p>' + Admin.escapeHtml(m.text) + '</p></div>';
+        }).join('');
+
+        Admin.modal({
+          title: t.subject,
+          subtitle: t.customerName + ' · ' + Admin.jDate(t.createdAt),
+          icon: 'ticket',
+          wide: true,
+          body:
+            '<div class="row row--tight mb-2">' +
+            Admin.badge(s.label, s.tone, s.icon) +
+            Admin.badge('اولویت ' + p.label, p.tone, p.icon) +
+            (t.assignedTo ? Admin.badge(t.assignedTo, 'neutral', 'user')
+              : Admin.badge('تخصیص‌نیافته', 'warning', 'user')) +
+            '</div>' +
+            '<div class="timeline mb-3">' + thread + '</div>' +
+            '<div class="form-grid">' +
+            '<div class="field"><label class="label" for="tkPriority">اولویت</label>' +
+            '<select class="select" id="tkPriority">' +
+            ['urgent', 'high', 'normal', 'low'].map(function (k) {
+              return '<option value="' + k + '"' + (t.priority === k ? ' selected' : '') + '>' +
+                PRIORITY[k].label + '</option>';
+            }).join('') + '</select></div>' +
+            '<div class="field"><label class="label" for="tkStatus">وضعیت</label>' +
+            '<select class="select" id="tkStatus">' +
+            ['open', 'in_progress', 'closed'].map(function (k) {
+              return '<option value="' + k + '"' + (t.status === k ? ' selected' : '') + '>' +
+                TICKET_STATUS[k].label + '</option>';
+            }).join('') + '</select></div>' +
+            '<div class="field field--full"><label class="label" for="tkAssign">مسئول پیگیری</label>' +
+            '<input class="input" id="tkAssign" value="' + Admin.escapeHtml(t.assignedTo || '') + '" ' +
+            'placeholder="نام همکار پشتیبانی"></div>' +
+            '<div class="field field--full"><label class="label" for="tkReply">پاسخ جدید</label>' +
+            '<textarea class="textarea" id="tkReply" rows="3" ' +
+            'placeholder="پاسخ خود را بنویسید…"></textarea>' +
+            '<span class="hint">ثبت پاسخ، وضعیت تیکت را به «در حال بررسی» تغییر می‌دهد.</span></div>' +
+            '</div>',
+          actions: [
+            { label: 'بستن', variant: 'btn--ghost', onClick: function (m) { m.close(); } },
+            {
+              label: 'ذخیره تغییرات', variant: 'btn--soft',
+              onClick: async function (m) {
+                await dataService.updateTicket(t.id, {
+                  priority: document.getElementById('tkPriority').value,
+                  status: document.getElementById('tkStatus').value,
+                  assignedTo: document.getElementById('tkAssign').value.trim() || null
+                });
+                m.close();
+                await refresh();
+                Admin.toast('تیکت به‌روزرسانی شد');
+              }
+            },
+            {
+              label: 'ثبت پاسخ', variant: 'btn--primary',
+              onClick: async function (m) {
+                var text = document.getElementById('tkReply').value.trim();
+                if (!text) { Admin.toast('متن پاسخ را وارد کنید', 'error'); return; }
+                await dataService.updateTicket(t.id, {
+                  priority: document.getElementById('tkPriority').value,
+                  assignedTo: document.getElementById('tkAssign').value.trim() || null
+                });
+                await dataService.replyToTicket(t.id, text);
+                m.close();
+                await refresh();
+                Admin.toast('پاسخ ثبت شد');
+              }
+            }
+          ]
+        });
+      }
+
+      /* ========================== جدول تماس با ما ====================== */
+      function buildContactTable() {
+        contactApi = Admin.table({
+          mount: '#contactTable',
+          rows: messages,
+          rowKey: 'id',
+          pageSize: 8,
+          selectable: true,
+          searchKeys: ['name', 'phone', 'subject', 'message'],
+          searchPlaceholder: 'جست‌وجو در پیام‌ها…',
+          defaultSort: { key: 'date', dir: 'desc' },
+          filters: [
+            {
+              key: 'read', label: 'وضعیت مطالعه',
+              options: [
+                { value: 'no', label: 'خوانده‌نشده' },
+                { value: 'yes', label: 'خوانده‌شده' }
+              ],
+              match: function (m, v) { return v === 'yes' ? !!m.read : !m.read; }
+            }
+          ],
+          bulkActions: [
+            {
+              label: 'علامت‌گذاری خوانده‌شده', icon: 'checkCircle', variant: 'btn--soft',
+              onClick: async function (ids) {
+                await Promise.all(ids.map(function (id) {
+                  return dataService.markMessageRead(id);
+                }));
+                await refresh();
+                Admin.toast(Admin.fa(ids.length) + ' پیام خوانده‌شده شد');
+              }
+            }
+          ],
+          empty: {
+            icon: 'mail',
+            title: 'پیامی دریافت نشده است',
+            desc: 'پیام‌های فرم تماس با ما در این جدول جمع می‌شوند.'
+          },
+          columns: [
+            {
+              key: 'name', label: 'فرستنده', sortable: true,
+              render: function (m) {
+                return '<div><b class="text-sm">' + Admin.escapeHtml(m.name) +
+                  (m.read ? '' : ' <span class="badge badge--info">جدید</span>') + '</b>' +
+                  '<div class="cell-sub ltr">' + Admin.fa(m.phone) + '</div></div>';
+              }
+            },
+            { key: 'subject', label: 'موضوع', sortable: true },
+            {
+              key: 'message', label: 'متن پیام',
+              render: function (m) {
+                var short = m.message.length > 80 ? m.message.slice(0, 80) + '…' : m.message;
+                return '<span class="text-sm" style="display:block;max-width:340px">' +
+                  Admin.escapeHtml(short) + '</span>';
+              }
+            },
+            {
+              key: 'email', label: 'ایمیل',
+              render: function (m) {
+                return m.email
+                  ? '<span class="ltr text-xs">' + Admin.escapeHtml(m.email) + '</span>'
+                  : '<span class="text-soft">—</span>';
+              }
+            },
+            {
+              key: 'date', label: 'تاریخ', sortable: true,
+              render: function (m) { return Admin.jShort(m.date); }
+            },
+            {
+              key: 'actions', label: 'عملیات', className: 'col-actions',
+              render: function (m) {
+                return '<div class="cell-actions">' +
+                  '<button class="act-btn" type="button" data-view-msg="' + m.id + '" ' +
+                  'title="مشاهده" aria-label="مشاهده پیام">' + Admin.icon('eye') + '</button>' +
+                  '<a class="act-btn" href="' + Admin.whatsappLink(m.phone,
+                    'سلام ' + m.name + '، درباره پیام شما با موضوع «' + m.subject + '»') +
+                  '" target="_blank" rel="noopener" title="واتساپ" aria-label="پاسخ در واتساپ">' +
+                  Admin.icon('whatsapp') + '</a>' +
+                  '<a class="act-btn" href="tel:' + Admin.escapeHtml(m.phone) + '" ' +
+                  'title="تماس" aria-label="تماس تلفنی">' + Admin.icon('phone') + '</a></div>';
+              }
+            }
+          ]
+        });
+
+        document.getElementById('contactTable').addEventListener('click', async function (e) {
+          var btn = e.target.closest('[data-view-msg]');
+          if (!btn) return;
+          var m = messages.filter(function (x) { return x.id === btn.getAttribute('data-view-msg'); })[0];
+
+          if (!m.read) await dataService.markMessageRead(m.id);
+
+          Admin.modal({
+            title: m.subject,
+            subtitle: m.name + ' · ' + Admin.jDate(m.date),
+            icon: 'mail',
+            body:
+              '<dl class="dl mb-2">' +
+              '<div class="dl__row"><dt>شماره تماس</dt><dd class="ltr">' + Admin.fa(m.phone) + '</dd></div>' +
+              (m.email ? '<div class="dl__row"><dt>ایمیل</dt><dd class="ltr">' +
+                Admin.escapeHtml(m.email) + '</dd></div>' : '') +
+              '</dl>' +
+              '<p class="text-sm" style="line-height:2.1">' + Admin.escapeHtml(m.message) + '</p>',
+            actions: [
+              {
+                label: 'پاسخ در واتساپ', variant: 'btn--success', icon: 'whatsapp',
+                onClick: function (mod) {
+                  window.open(Admin.whatsappLink(m.phone, 'سلام ' + m.name + '،'), '_blank');
+                  mod.close();
+                }
+              },
+              { label: 'بستن', variant: 'btn--ghost', onClick: function (mod) { mod.close(); } }
+            ]
+          });
+
+          await refresh();
+        });
+      }
+
+      /* ======================== درخواست اطلاع موجودی =================== */
+      function renderRestockGroups() {
+        var groups = {};
+        restock.filter(function (r) { return !r.notified; }).forEach(function (r) {
+          if (!groups[r.productId]) {
+            groups[r.productId] = {
+              productId: r.productId, productName: r.productName,
+              productImage: r.productImage, inStockNow: r.inStockNow, count: 0
+            };
+          }
+          groups[r.productId].count++;
+        });
+
+        var rows = Object.keys(groups).map(function (k) { return groups[k]; })
+          .sort(function (a, b) { return b.count - a.count; });
+
+        var box = document.getElementById('restockGroups');
+        if (!rows.length) {
+          box.innerHTML = '';
+          return;
+        }
+
+        box.innerHTML = rows.map(function (g) {
+          return '<article class="card card--pad">' +
+            '<div class="row row--between">' +
+            '<div class="cell-product">' +
+            '<img class="thumb thumb--lg" src="' + g.productImage + '" alt="" loading="lazy" width="58" height="58">' +
+            '<div><b>' + Admin.escapeHtml(g.productName) + '</b>' +
+            '<small>' + Admin.fa(g.count) + ' نفر در انتظار</small></div></div>' +
+            (g.inStockNow
+              ? Admin.badge('موجود شده', 'success', 'checkCircle')
+              : Admin.badge('هنوز ناموجود', 'warning', 'clock')) +
+            '</div>' +
+            '<div class="row row--tight mt-2">' +
+            '<button class="btn btn--sm ' + (g.inStockNow ? 'btn--gold' : 'btn--ghost') + '" type="button" ' +
+            'data-notify="' + g.productId + '"' + (g.inStockNow ? '' : ' disabled') + '>' +
+            Admin.icon('bell') + '<span>اطلاع‌رسانی گروهی</span></button>' +
+            '<a class="btn btn--sm btn--ghost" href="inventory.html">' +
+            Admin.icon('warehouse') + '<span>مدیریت موجودی</span></a>' +
+            '</div></article>';
+        }).join('');
+
+        box.querySelectorAll('[data-notify]').forEach(function (btn) {
+          btn.addEventListener('click', async function () {
+            var count = await dataService.notifyRestockGroup(btn.getAttribute('data-notify'));
+            await refresh();
+            Admin.toast('اطلاع‌رسانی برای ' + Admin.fa(count) + ' درخواست ثبت شد');
+          });
+        });
+      }
+
+      function buildRestockTable() {
+        restockApi = Admin.table({
+          mount: '#restockTable',
+          rows: restock,
+          rowKey: 'id',
+          pageSize: 8,
+          searchKeys: ['productName', 'contact', 'variant'],
+          searchPlaceholder: 'جست‌وجو با محصول یا اطلاعات تماس…',
+          defaultSort: { key: 'date', dir: 'desc' },
+          filters: [
+            {
+              key: 'notified', label: 'وضعیت اطلاع‌رسانی',
+              options: [
+                { value: 'no', label: 'در انتظار' },
+                { value: 'yes', label: 'اطلاع داده شده' }
+              ],
+              match: function (r, v) { return v === 'yes' ? !!r.notified : !r.notified; }
+            },
+            {
+              key: 'channel', label: 'کانال',
+              options: [
+                { value: 'sms', label: 'پیامک' },
+                { value: 'email', label: 'ایمیل' }
+              ]
+            },
+            {
+              key: 'inStockNow', label: 'موجودی فعلی',
+              options: [
+                { value: 'yes', label: 'موجود شده' },
+                { value: 'no', label: 'ناموجود' }
+              ],
+              match: function (r, v) { return v === 'yes' ? !!r.inStockNow : !r.inStockNow; }
+            }
+          ],
+          empty: {
+            icon: 'bell',
+            title: 'درخواستی ثبت نشده است',
+            desc: 'فرم «اطلاع بده موجود شد» در صفحه محصول، درخواست‌ها را اینجا ثبت می‌کند.'
+          },
+          columns: [
+            {
+              key: 'productName', label: 'محصول', sortable: true,
+              render: function (r) {
+                return '<a class="cell-product" href="product-form.html?id=' + encodeURIComponent(r.productId) + '">' +
+                  '<img class="thumb" src="' + r.productImage + '" alt="" loading="lazy" width="46" height="46">' +
+                  '<div><b>' + Admin.escapeHtml(r.productName) + '</b>' +
+                  '<small>' + Admin.escapeHtml(r.variant) + '</small></div></a>';
+              }
+            },
+            {
+              key: 'contact', label: 'اطلاعات تماس',
+              render: function (r) {
+                return '<span class="ltr text-sm">' +
+                  (r.channel === 'sms' ? Admin.fa(r.contact) : Admin.escapeHtml(r.contact)) + '</span>';
+              }
+            },
+            {
+              key: 'channel', label: 'کانال', sortable: true,
+              render: function (r) {
+                return Admin.badge(CHANNEL[r.channel] || r.channel, 'neutral',
+                  r.channel === 'sms' ? 'phone' : 'mail');
+              }
+            },
+            {
+              key: 'date', label: 'تاریخ درخواست', sortable: true,
+              render: function (r) { return Admin.jShort(r.date); }
+            },
+            {
+              key: 'inStockNow', label: 'موجودی', sortable: true,
+              render: function (r) {
+                return r.inStockNow
+                  ? Admin.badge('موجود شده', 'success', 'checkCircle')
+                  : Admin.badge('ناموجود', 'warning', 'clock');
+              }
+            },
+            {
+              key: 'notified', label: 'اطلاع‌رسانی', sortable: true,
+              render: function (r) {
+                return r.notified
+                  ? Admin.badge('ارسال شد', 'success', 'bell')
+                  : Admin.badge('در انتظار', 'info', 'clock');
+              }
+            },
+            {
+              key: 'actions', label: 'عملیات', className: 'col-actions',
+              render: function (r) {
+                if (r.channel !== 'sms') {
+                  return '<div class="cell-actions"><a class="act-btn" href="mailto:' +
+                    Admin.escapeHtml(r.contact) + '" title="ایمیل" aria-label="ارسال ایمیل">' +
+                    Admin.icon('mail') + '</a></div>';
+                }
+                return '<div class="cell-actions"><a class="act-btn" href="' +
+                  Admin.whatsappLink(r.contact, 'سلام، محصول ' + r.productName +
+                    ' (' + r.variant + ') موجود شد.') +
+                  '" target="_blank" rel="noopener" title="واتساپ" aria-label="اطلاع در واتساپ">' +
+                  Admin.icon('whatsapp') + '</a></div>';
+              }
+            }
+          ]
+        });
+      }
+
+      /* ============================ خبرنامه ============================ */
+      function buildNewsletterTable() {
+        newsApi = Admin.table({
+          mount: '#newsletterTable',
+          rows: newsletter,
+          rowKey: 'id',
+          pageSize: 10,
+          selectable: true,
+          searchKeys: ['email', 'source'],
+          searchPlaceholder: 'جست‌وجو با ایمیل…',
+          defaultSort: { key: 'date', dir: 'desc' },
+          filters: [
+            {
+              key: 'active', label: 'وضعیت',
+              options: [
+                { value: 'yes', label: 'فعال' },
+                { value: 'no', label: 'لغو‌شده' }
+              ],
+              match: function (n, v) { return v === 'yes' ? !!n.active : !n.active; }
+            },
+            {
+              key: 'source', label: 'منبع عضویت',
+              options: uniqueSources()
+            }
+          ],
+          bulkActions: [
+            {
+              label: 'کپی ایمیل‌ها', icon: 'copy', variant: 'btn--soft',
+              onClick: function (ids) {
+                var list = newsletter.filter(function (n) { return ids.indexOf(n.id) !== -1; })
+                  .map(function (n) { return n.email; }).join(', ');
+                navigator.clipboard.writeText(list).then(function () {
+                  Admin.toast(Admin.fa(ids.length) + ' ایمیل در کلیپ‌بورد کپی شد');
+                });
+              }
+            },
+            {
+              label: 'برون‌بری انتخاب‌شده', icon: 'download', variant: 'btn--ghost',
+              onClick: function (ids) {
+                Admin.exportCsv('hasti-newsletter-selected.csv', [
+                  { label: 'ایمیل', key: 'email' },
+                  { label: 'تاریخ عضویت', key: 'date' },
+                  { label: 'منبع', key: 'source' }
+                ], newsletter.filter(function (n) { return ids.indexOf(n.id) !== -1; }));
+              }
+            }
+          ],
+          empty: {
+            icon: 'inbox',
+            title: 'مشترکی ثبت نشده است',
+            desc: 'فرم خبرنامه در فوتر فروشگاه، ایمیل‌ها را اینجا جمع می‌کند.'
+          },
+          columns: [
+            {
+              key: 'email', label: 'ایمیل', sortable: true,
+              render: function (n) {
+                return '<span class="ltr text-sm fw-bold">' + Admin.escapeHtml(n.email) + '</span>';
+              }
+            },
+            {
+              key: 'date', label: 'تاریخ عضویت', sortable: true,
+              render: function (n) { return Admin.jShort(n.date); }
+            },
+            { key: 'source', label: 'منبع', sortable: true },
+            {
+              key: 'active', label: 'وضعیت', sortable: true,
+              render: function (n) {
+                return n.active
+                  ? Admin.badge('فعال', 'success', 'checkCircle')
+                  : Admin.badge('لغو اشتراک', 'neutral', 'xCircle');
+              }
+            }
+          ]
+        });
+      }
+
+      function uniqueSources() {
+        var seen = {};
+        newsletter.forEach(function (n) { seen[n.source] = true; });
+        return Object.keys(seen).map(function (s) { return { value: s, label: s }; });
+      }
+
+      /* ============================ برون‌بری =========================== */
+      function exportActive() {
+        if (activePanel === 'tickets') {
+          Admin.exportCsv('hasti-tickets.csv', [
+            { label: 'موضوع', key: 'subject' },
+            { label: 'مشتری', key: 'customerName' },
+            { label: 'شماره تماس', key: 'customerPhone' },
+            { label: 'اولویت', value: function (t) { return (PRIORITY[t.priority] || {}).label || t.priority; } },
+            { label: 'وضعیت', value: function (t) { return (TICKET_STATUS[t.status] || {}).label || t.status; } },
+            { label: 'مسئول', value: function (t) { return t.assignedTo || 'تخصیص‌نیافته'; } },
+            { label: 'تاریخ ثبت', key: 'createdAt' }
+          ], ticketApi.getFiltered());
+          return;
+        }
+
+        if (activePanel === 'contact') {
+          Admin.exportCsv('hasti-contact-messages.csv', [
+            { label: 'نام', key: 'name' },
+            { label: 'شماره تماس', key: 'phone' },
+            { label: 'ایمیل', key: 'email' },
+            { label: 'موضوع', key: 'subject' },
+            { label: 'متن پیام', key: 'message' },
+            { label: 'تاریخ', key: 'date' }
+          ], contactApi.getFiltered());
+          return;
+        }
+
+        if (activePanel === 'restock') {
+          Admin.exportCsv('hasti-restock-requests.csv', [
+            { label: 'محصول', key: 'productName' },
+            { label: 'تنوع', key: 'variant' },
+            { label: 'اطلاعات تماس', key: 'contact' },
+            { label: 'کانال', value: function (r) { return CHANNEL[r.channel] || r.channel; } },
+            { label: 'تاریخ', key: 'date' },
+            { label: 'اطلاع‌رسانی', value: function (r) { return r.notified ? 'ارسال شد' : 'در انتظار'; } }
+          ], restockApi.getFiltered());
+          return;
+        }
+
+        Admin.exportCsv('hasti-newsletter.csv', [
+          { label: 'ایمیل', key: 'email' },
+          { label: 'تاریخ عضویت', key: 'date' },
+          { label: 'منبع', key: 'source' },
+          { label: 'وضعیت', value: function (n) { return n.active ? 'فعال' : 'لغو اشتراک'; } }
+        ], newsApi.getFiltered());
+      }
+
+      /* ============================ بازخوانی =========================== */
+      async function refresh() {
+        await loadAll();
+        renderKpis();
+        ticketApi.setRows(tickets);
+        contactApi.setRows(messages);
+        restockApi.setRows(restock);
+        newsApi.setRows(newsletter);
+        renderRestockGroups();
+      }
+    })();
+  </script>
+</body>
+
+</html>

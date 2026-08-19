@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ورود به پنل مدیریت فروشگاه هستی">
+  <meta name="robots" content="noindex, nofollow">
+  <title>ورود به پنل مدیریت | هستی</title>
+  <link rel="stylesheet" href="assets/admin-shared.css">
+</head>
+
+<body class="login-page">
+
+  <aside class="login-aside"></aside>
+
+  <main class="login-main">
+    <div class="login-card">
+      <div class="login-card__brand">
+        <img src="../logo-transparent.png" alt="برند هستی" class="login-card__logo" width="220" height="154">
+        <span>دسترسی اختصاصی مدیریت</span>
+      </div>
+      <h2>ورود به پنل</h2>
+      <p>برای دسترسی به پنل مدیریت، شماره موبایل و رمز عبور خود را وارد کنید.</p>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label class="label" for="phone">شماره موبایل <span class="req" aria-hidden="true">*</span></label>
+          <input class="input ltr" type="tel" id="phone" name="phone" inputmode="tel" autocomplete="username"
+            placeholder="09151234567" required aria-required="true">
+          <!-- <span class="hint">شماره موبایلی که با آن حساب مدیریت ثبت شده است.</span> -->
+        </div>
+
+        <div class="field">
+          <label class="label" for="password">رمز عبور <span class="req" aria-hidden="true">*</span></label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="password" name="password" autocomplete="current-password"
+              placeholder="••••••••" required aria-required="true">
+            <button class="pw-toggle" type="button" id="pwToggle" aria-label="نمایش رمز عبور"></button>
+          </div>
+        </div>
+
+        <div class="field security-field">
+          <label class="label" for="securityCode">کد امنیتی <span class="req" aria-hidden="true">*</span></label>
+          <div class="security-wrap">
+            <input class="input ltr" type="text" id="securityCode" name="securityCode" inputmode="numeric"
+              autocomplete="one-time-code" maxlength="5" placeholder="کد ۵ رقمی" required aria-required="true"
+              aria-describedby="securityHint">
+            <button class="security-challenge" type="button" id="refreshSecurity"
+              aria-label="ساخت کد امنیتی جدید">
+              <span id="securityChallenge" aria-hidden="true"></span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 7v5h-5"></path>
+                <path d="M4 17v-5h5"></path>
+                <path d="M7.5 7.5A7 7 0 0 1 19 10l1 2"></path>
+                <path d="M16.5 16.5A7 7 0 0 1 5 14l-1-2"></path>
+              </svg>
+            </button>
+          </div>
+          <span class="hint" id="securityHint">کد نمایش‌داده‌شده را وارد کنید.</span>
+        </div>
+
+        <div class="login-row">
+          <label class="check">
+            <input type="checkbox" id="remember" name="remember" checked>
+            <span class="check__box"></span>
+            <span>مرا به خاطر بسپار</span>
+          </label>
+          <a href="#" id="forgotLink">رمز عبور را فراموش کردم</a>
+        </div>
+
+        <!-- پیام خطای ورود ناموفق (aria-live تا صفحه‌خوان اعلام کند) -->
+        <div id="loginError" class="notice notice--danger mb-2" role="alert" aria-live="assertive" hidden></div>
+
+        <button class="btn btn--primary btn--block" type="submit" id="loginBtn">
+          <span>ورود به پنل مدیریت</span>
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <script src="assets/data/mock-data.js"></script>
+  <script src="assets/admin-shared.js"></script>
+  <script src="assets/data/dataService.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      var DEMO_PHONE = '09152500553';
+      var DEMO_PASSWORD = 'hasti1403';
+
+      var form = document.getElementById('loginForm');
+      var phone = document.getElementById('phone');
+      var password = document.getElementById('password');
+      var securityCode = document.getElementById('securityCode');
+      var securityChallenge = document.getElementById('securityChallenge');
+      var refreshSecurity = document.getElementById('refreshSecurity');
+      var errorBox = document.getElementById('loginError');
+      var loginBtn = document.getElementById('loginBtn');
+      var currentSecurityCode = '';
+
+      function createSecurityCode() {
+        currentSecurityCode = String(Math.floor(10000 + Math.random() * 90000));
+        securityChallenge.textContent = Admin.fa(currentSecurityCode);
+        securityCode.value = '';
+        Admin.clearFieldError(securityCode);
+      }
+
+      refreshSecurity.addEventListener('click', function () {
+        createSecurityCode();
+        securityCode.focus();
+      });
+      createSecurityCode();
+
+      /* --- آمار نمایشی ستون برند --- */
+      (async function loadStats() {
+        var products = await dataService.getProducts();
+        var orders = await dataService.getOrders();
+        var customers = await dataService.getCustomers();
+        document.getElementById('statProducts').textContent =
+          Admin.fa(products.filter(function (p) { return p.status === 'published'; }).length);
+        document.getElementById('statOrders').textContent = Admin.fa(orders.length);
+        document.getElementById('statCustomers').textContent = Admin.fa(customers.length);
+      })();
+
+      /* hide/show password */
+      var pwToggle = document.getElementById('pwToggle');
+      pwToggle.innerHTML = Admin.icon('eye');
+      pwToggle.addEventListener('click', function () {
+        var isHidden = password.type === 'password';
+        password.type = isHidden ? 'text' : 'password';
+        pwToggle.innerHTML = Admin.icon(isHidden ? 'x' : 'eye');
+        pwToggle.setAttribute('aria-label', isHidden ? 'مخفی کردن رمز عبور' : 'نمایش رمز عبور');
+      });
+
+      /* --- اعتبارسنجی روی blur، نه هر کلید --- */
+      [phone, password, securityCode].forEach(function (field) {
+        field.addEventListener('blur', function () {
+          if (!field.value.trim()) {
+            var message = field === phone
+              ? 'وارد کردن شماره موبایل الزامی است.'
+              : field === password
+                ? 'وارد کردن رمز عبور الزامی است.'
+                : 'وارد کردن کد امنیتی الزامی است.';
+            Admin.setFieldError(field, message);
+          } else {
+            Admin.clearFieldError(field);
+          }
+        });
+        field.addEventListener('input', function () {
+          Admin.clearFieldError(field);
+          errorBox.hidden = true;
+        });
+      });
+
+      function showError(message) {
+        errorBox.innerHTML = Admin.icon('alert') +
+          '<span><b>ورود ناموفق بود</b>' + Admin.escapeHtml(message) + '</span>';
+        errorBox.hidden = false;
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        errorBox.hidden = true;
+
+        var valid = Admin.validateForm(form, {
+          phone: function (v) {
+            if (!String(v).trim()) return 'وارد کردن شماره موبایل الزامی است.';
+            var normalized = Admin.toEn(v).replace(/\D/g, '');
+            if (!/^09\d{9}$/.test(normalized)) return 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.';
+            return null;
+          },
+          password: function (v) {
+            if (!String(v).trim()) return 'وارد کردن رمز عبور الزامی است.';
+            if (String(v).length < 6) return 'رمز عبور باید حداقل ۶ کاراکتر باشد.';
+            return null;
+          },
+          securityCode: function (v) {
+            if (!String(v).trim()) return 'وارد کردن کد امنیتی الزامی است.';
+            if (Admin.toEn(v).replace(/\D/g, '') !== currentSecurityCode) return 'کد امنیتی واردشده صحیح نیست.';
+            return null;
+          }
+        });
+        if (!valid) return;
+
+        /* حالت loading روی دکمه تا کاربر بازخورد فوری بگیرد */
+        loginBtn.classList.add('btn--loading');
+        loginBtn.disabled = true;
+
+        setTimeout(function () {
+          loginBtn.classList.remove('btn--loading');
+          loginBtn.disabled = false;
+
+          var enteredPhone = Admin.toEn(phone.value).replace(/\D/g, '');
+          if (enteredPhone === DEMO_PHONE && password.value === DEMO_PASSWORD) {
+            /* TODO(backend): توکن نشست باید توسط سرور در کوکی HttpOnly ست شود.
+               این فلگ فقط برای جریان نمایشی UI است و ارزش امنیتی ندارد. */
+            if (document.getElementById('remember').checked) {
+              localStorage.setItem('hasti_admin_remember', '1');
+            }
+            sessionStorage.setItem('hasti_admin_session', 'demo');
+
+            /* بازگشت به صفحه‌ای که کاربر پیش از ورود قصد دیدنش را داشت */
+            var next = Admin.param('next');
+            var safeNext = next && /^[a-zA-Z0-9_.-]+\.html(\?[^#]*)?$/.test(next) ? next : 'index.html';
+            window.location.href = safeNext;
+          } else {
+            showError('شماره موبایل یا رمز عبور نادرست است. لطفاً دوباره تلاش کنید.');
+            password.value = '';
+            createSecurityCode();
+            password.focus();
+          }
+        }, 700);
+      });
+
+      document.getElementById('forgotLink').addEventListener('click', function (e) {
+        e.preventDefault();
+        Admin.modal({
+          title: 'بازیابی رمز عبور',
+          icon: 'key',
+          body: '<p>برای بازیابی رمز عبور با مدیر کل فروشگاه تماس بگیرید یا از طریق واتساپ ' +
+            '<span class="ltr fw-bold">۰۹۱۵۲۵۰۰۵۵۳</span> درخواست خود را ارسال کنید.</p>' +
+            '<p class="text-sm text-soft mt-2">در نسخه نهایی، بازیابی رمز از طریق کد یک‌بارمصرف پیامکی انجام خواهد شد.</p>',
+          actions: [{ label: 'متوجه شدم', variant: 'btn--primary', onClick: function (m) { m.close(); } }]
+        });
+      });
+
+      /* اگر کاربر از یک صفحه محافظت‌شده به اینجا هدایت شده، دلیلش را بگوییم */
+      if (Admin.param('next')) {
+        errorBox.innerHTML = Admin.icon('lock') +
+          '<span><b>نیاز به ورود</b>برای دسترسی به آن صفحه ابتدا وارد حساب خود شوید.</span>';
+        errorBox.hidden = false;
+      }
+
+      /* پیش‌پر کردن شماره در صورت فعال بودن «مرا به خاطر بسپار» */
+      if (localStorage.getItem('hasti_admin_remember') === '1') {
+        phone.value = DEMO_PHONE;
+        password.focus();
+      } else {
+        phone.focus();
+      }
+    })();
+  </script>
+</body>
+
+</html>
