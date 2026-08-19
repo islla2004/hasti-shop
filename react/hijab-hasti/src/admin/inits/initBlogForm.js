@@ -1,0 +1,339 @@
+import { Admin } from '../adminShared.js';
+import { dataService } from '../data/dataService.js';
+import { HASTI_MOCK } from '../data/mockData.js';
+
+export async function initBlogForm() {
+
+
+      var blogCategories = [];
+      var tags = [];
+      var postId = Admin.param('id');
+      var isEdit = false;
+      var form = document.getElementById('postForm');
+
+      (async function init() {
+        await Admin.shell("blog");
+        blogCategories = await dataService.getBlogCategories();
+
+        document.getElementById('categoryId').innerHTML =
+          '<option value="">انتخاب کنید…</option>' +
+          blogCategories.map(function (c) {
+            return '<option value="' + c.id + '">' + Admin.escapeHtml(c.name) + '</option>';
+          }).join('');
+
+        document.getElementById('publishDate').value = dataService.today();
+        document.getElementById('author').value = dataService.getCurrentUser().name;
+
+        if (postId) {
+          var post = await dataService.getBlogPost(postId);
+          if (post) {
+            isEdit = true;
+            fillForm(post);
+          } else {
+            Admin.toast('مقاله یافت نشد', 'error');
+          }
+        }
+
+        renderTags();
+        bindEvents();
+        updateCounts();
+        updatePreview();
+      })();
+
+      /* ============================== پر کردن فرم ======================= */
+      function fillForm(p) {
+        tags = (p.tags || []).slice();
+        document.getElementById('title').value = p.title;
+        document.getElementById('slug').value = p.slug;
+        document.getElementById('slug').dataset.touched = '1';
+        document.getElementById('excerpt').value = p.excerpt || '';
+        document.getElementById('content').value = p.content || '';
+        document.getElementById('categoryId').value = p.categoryId;
+        document.getElementById('status').value = p.status;
+        document.getElementById('publishDate').value = p.publishDate;
+        document.getElementById('author').value = p.author;
+        document.getElementById('cover').value = p.cover || '';
+        document.getElementById('seoTitle').value = (p.seo && p.seo.title) || '';
+        document.getElementById('seoTitle').dataset.touched = '1';
+        document.getElementById('seoDescription').value = (p.seo && p.seo.description) || '';
+        document.getElementById('ogImage').value = (p.seo && p.seo.ogImage) || '';
+        document.getElementById('canonical').value = (p.seo && p.seo.canonical) || '';
+
+        document.getElementById('formTitle').textContent = 'ویرایش: ' + p.title;
+        document.getElementById('crumbCurrent').textContent = p.title;
+        document.getElementById('formSub').textContent =
+          'منتشرشده در ' + Admin.jDate(p.publishDate) + ' · ' + Admin.fa(p.views) + ' بازدید';
+        document.title = 'ویرایش ' + p.title + ' | پنل مدیریت هستی';
+        document.getElementById('saveBtn').querySelector('span')
+          ? null : (document.getElementById('saveBtn').textContent = 'ذخیره تغییرات');
+
+        document.getElementById('statsCard').hidden = false;
+        document.getElementById('postStats').innerHTML =
+          '<div class="dl__row"><dt>بازدید</dt><dd>' + Admin.fa(p.views) + '</dd></div>' +
+          '<div class="dl__row"><dt>تعداد کلمات</dt><dd>' +
+          Admin.fa(countWords(p.content)) + ' کلمه</dd></div>' +
+          '<div class="dl__row"><dt>زمان مطالعه</dt><dd>' +
+          Admin.fa(Math.max(1, Math.round(countWords(p.content) / 200))) + ' دقیقه</dd></div>';
+
+        document.getElementById('headActions').innerHTML =
+          '<button class="btn btn--danger-ghost btn--sm" type="button" id="delBtn">' +
+          Admin.icon('trash') + '<span>حذف مقاله</span></button>';
+
+        document.getElementById('delBtn').addEventListener('click', async function () {
+          var ok = await Admin.confirm({
+            title: 'حذف مقاله', danger: true, icon: 'trash',
+            message: 'مقاله «<b>' + Admin.escapeHtml(p.title) + '</b>» حذف شود؟',
+            confirmLabel: 'حذف مقاله'
+          });
+          if (!ok) return;
+          await dataService.deleteBlogPost(p.id);
+          form.dataset.dirty = '0';
+          Admin.toast('مقاله حذف شد');
+          setTimeout(function () { window.location.href = '/admin/blog'; }, 700);
+        });
+
+        updateCover();
+      }
+
+      function countWords(html) {
+        return String(html || '').replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+      }
+
+      /* ============================== برچسب‌ها ========================== */
+      function renderTags() {
+        var box = document.getElementById('tagChips');
+        if (!tags.length) {
+          box.innerHTML = '<span class="text-soft text-xs">برچسبی افزوده نشده است.</span>';
+          return;
+        }
+        box.innerHTML = tags.map(function (t, i) {
+          return '<span class="chip chip--removable">' + Admin.escapeHtml(t) +
+            '<button type="button" data-remove-tag="' + i + '" aria-label="حذف برچسب ' +
+            Admin.escapeHtml(t) + '">' + Admin.icon('x') + '</button></span>';
+        }).join('');
+
+        box.querySelectorAll('[data-remove-tag]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            tags.splice(Number(btn.getAttribute('data-remove-tag')), 1);
+            renderTags();
+            markDirty();
+          });
+        });
+      }
+
+      /* ============================== رویدادها ========================= */
+      function bindEvents() {
+        var titleInput = document.getElementById('title');
+        var slugInput = document.getElementById('slug');
+
+        titleInput.addEventListener('input', function () {
+          if (!slugInput.dataset.touched) slugInput.value = latinize(titleInput.value);
+          if (!document.getElementById('seoTitle').dataset.touched) {
+            document.getElementById('seoTitle').value =
+              titleInput.value ? titleInput.value + ' | هستی' : '';
+          }
+          updateCounts();
+          markDirty();
+        });
+
+        slugInput.addEventListener('input', function () {
+          slugInput.dataset.touched = '1';
+          markDirty();
+        });
+
+        document.getElementById('seoTitle').addEventListener('input', function () {
+          this.dataset.touched = '1';
+          updateCounts();
+        });
+        document.getElementById('seoDescription').addEventListener('input', updateCounts);
+        document.getElementById('excerpt').addEventListener('input', updateCounts);
+
+        document.getElementById('cover').addEventListener('input', function () {
+          updateCover();
+          markDirty();
+        });
+
+        document.getElementById('content').addEventListener('input', Admin.debounce(function () {
+          updatePreview();
+          markDirty();
+        }, 400));
+
+        document.getElementById('refreshPreview').addEventListener('click', updatePreview);
+
+        /* نوار ابزار — درج تگ در محل نشانگر */
+        Admin.$$('.editor-toolbar [data-tag]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            insertTag(btn.getAttribute('data-tag'));
+          });
+        });
+
+        document.getElementById('addTag').addEventListener('click', addTag);
+        document.getElementById('newTag').addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addTag();
+          }
+        });
+
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          save(document.getElementById('status').value);
+        });
+
+        document.getElementById('saveDraft').addEventListener('click', function () {
+          document.getElementById('status').value = 'draft';
+          save('draft');
+        });
+
+        window.addEventListener('beforeunload', function (e) {
+          if (form.dataset.dirty === '1') {
+            e.preventDefault();
+            e.returnValue = '';
+          }
+        });
+      }
+
+      function addTag() {
+        var input = document.getElementById('newTag');
+        var value = input.value.trim();
+        if (!value) return;
+        if (tags.indexOf(value) !== -1) {
+          Admin.toast('این برچسب قبلاً افزوده شده است', 'warning');
+          return;
+        }
+        tags.push(value);
+        input.value = '';
+        renderTags();
+        markDirty();
+      }
+
+      function insertTag(tag) {
+        var area = document.getElementById('content');
+        var start = area.selectionStart;
+        var end = area.selectionEnd;
+        var selected = area.value.slice(start, end);
+        var snippet;
+
+        if (tag === 'ul') {
+          snippet = '<ul>\n  <li>' + (selected || 'مورد اول') + '</li>\n  <li>مورد دوم</li>\n</ul>';
+        } else if (tag === 'a') {
+          snippet = '<a href="#">' + (selected || 'متن پیوند') + '</a>';
+        } else {
+          snippet = '<' + tag + '>' + (selected || 'متن') + '</' + tag + '>';
+        }
+
+        area.value = area.value.slice(0, start) + snippet + area.value.slice(end);
+        area.focus();
+        area.selectionStart = area.selectionEnd = start + snippet.length;
+        updatePreview();
+        markDirty();
+      }
+
+      function updatePreview() {
+        var content = document.getElementById('content').value.trim();
+        var box = document.getElementById('preview');
+        if (!content) {
+          box.innerHTML = '<p class="text-soft text-sm">برای مشاهده پیش‌نمایش، متن مقاله را وارد کنید.</p>';
+          return;
+        }
+        var words = countWords(content);
+        box.innerHTML = '<div class="row row--tight mb-2">' +
+          Admin.badge(Admin.fa(words) + ' کلمه', 'neutral', 'article') +
+          Admin.badge(Admin.fa(Math.max(1, Math.round(words / 200))) + ' دقیقه مطالعه', 'neutral', 'clock') +
+          '</div><div class="prose">' + content + '</div>';
+      }
+
+      function updateCover() {
+        var url = document.getElementById('cover').value.trim();
+        var img = document.getElementById('coverPreview');
+        if (url) {
+          img.src = url;
+          img.style.display = 'block';
+        } else {
+          img.style.display = 'none';
+        }
+      }
+
+      function updateCounts() {
+        document.getElementById('seoTitleCount').textContent =
+          Admin.fa(document.getElementById('seoTitle').value.length) + ' از ۷۰ کاراکتر';
+        document.getElementById('seoDescCount').textContent =
+          Admin.fa(document.getElementById('seoDescription').value.length) + ' از ۱۶۰ کاراکتر';
+        document.getElementById('excerptCount').textContent =
+          Admin.fa(document.getElementById('excerpt').value.length) + ' کاراکتر — حداکثر ۲۰۰ پیشنهاد می‌شود';
+      }
+
+      function latinize(text) {
+        var map = { 'ا': 'a', 'آ': 'a', 'ب': 'b', 'پ': 'p', 'ت': 't', 'ث': 's', 'ج': 'j', 'چ': 'ch', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'z', 'ر': 'r', 'ز': 'z', 'ژ': 'zh', 'س': 's', 'ش': 'sh', 'ص': 's', 'ض': 'z', 'ط': 't', 'ظ': 'z', 'ع': 'a', 'غ': 'gh', 'ف': 'f', 'ق': 'gh', 'ک': 'k', 'گ': 'g', 'ل': 'l', 'م': 'm', 'ن': 'n', 'و': 'v', 'ه': 'h', 'ی': 'y' };
+        return String(text).trim().split('').map(function (ch) {
+          if (map[ch]) return map[ch];
+          if (/[a-zA-Z0-9]/.test(ch)) return ch.toLowerCase();
+          if (/\s/.test(ch)) return '-';
+          return '';
+        }).join('').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      }
+
+      function markDirty() {
+        form.dataset.dirty = '1';
+        var note = document.getElementById('stickyNote');
+        note.textContent = 'تغییرات ذخیره نشده است';
+        note.style.color = 'var(--c-danger)';
+      }
+
+      /* ============================== ذخیره =========================== */
+      async function save(status) {
+        var valid = Admin.validateForm(form, {
+          title: Admin.required('عنوان مقاله'),
+          slug: function (v) {
+            if (!String(v).trim()) return 'وارد کردن اسلاگ الزامی است.';
+            if (!/^[a-z0-9-]+$/.test(v)) return 'اسلاگ فقط می‌تواند حروف انگلیسی کوچک، عدد و خط تیره باشد.';
+            return null;
+          },
+          categoryId: function (v) { return v ? null : 'انتخاب دسته مقاله الزامی است.'; }
+        });
+
+        if (!valid) {
+          Admin.toast('لطفاً خطاهای فرم را برطرف کنید', 'error');
+          return;
+        }
+
+        var publishDate = Admin.toEn(document.getElementById('publishDate').value.trim());
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(publishDate)) {
+          Admin.toast('تاریخ انتشار باید با قالب ۱۴۰۳-۰۷-۱۴ وارد شود', 'error');
+          return;
+        }
+
+        var saveBtn = document.getElementById('saveBtn');
+        saveBtn.classList.add('btn--loading');
+
+        await dataService.saveBlogPost({
+          id: isEdit ? postId : undefined,
+          title: document.getElementById('title').value.trim(),
+          slug: document.getElementById('slug').value.trim(),
+          categoryId: document.getElementById('categoryId').value,
+          cover: document.getElementById('cover').value.trim(),
+          author: document.getElementById('author').value.trim(),
+          publishDate: publishDate,
+          status: status,
+          tags: tags.slice(),
+          excerpt: document.getElementById('excerpt').value.trim(),
+          content: document.getElementById('content').value.trim(),
+          seo: {
+            title: document.getElementById('seoTitle').value.trim(),
+            description: document.getElementById('seoDescription').value.trim(),
+            ogImage: document.getElementById('ogImage').value.trim(),
+            canonical: document.getElementById('canonical').value.trim()
+          }
+        });
+
+        saveBtn.classList.remove('btn--loading');
+        form.dataset.dirty = '0';
+        var note = document.getElementById('stickyNote');
+        note.textContent = 'همه تغییرات ذخیره شد';
+        note.style.color = 'var(--c-success)';
+        Admin.toast(isEdit ? 'مقاله به‌روزرسانی شد' : 'مقاله ثبت شد');
+
+        setTimeout(function () { window.location.href = '/admin/blog'; }, 900);
+      }
+    
+}

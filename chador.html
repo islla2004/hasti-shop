@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="page-chador">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>چادر | فروشگاه هستی</title>
+  <meta name="description"
+    content="مجموعه چادرهای هستی؛ فیلتر بر اساس جدیدترین، ارزان‌ترین، گران‌ترین، پربازدیدترین، جنس پارچه و قد چادر (۱۵۵ تا ۱۷۰ سانتی‌متر).">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Poppins:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="test.css">
+  <link rel="stylesheet" href="chador-shop.css">
+</head>
+
+<body class="page-chador">
+  <a href="#main" class="skip-link">Skip to content</a>
+
+  <!-- ============================ ANNOUNCEMENT BAR ============================ -->
+  <div class="announcement" role="region" aria-label="Store announcements">
+    <div class="announcement__social">
+      <a href="https://www.instagram.com/hejab.hasti/?hl=en" target="_blank" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+        </svg>
+      </a>
+      <a href="https://www.threads.com/@hejab.hasti" target="_blank" aria-label="Telegram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M22 2L11 13"></path>
+          <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+        </svg>
+      </a>
+      <a href="https://l.threads.com/?u=https%3A%2F%2Fwa.me%2F989152500553&e=AUBxl-Vx0mtVTzpTteS0P-2CIF8E03VWPHsTFoc8zmrtfGg11qsSZI9BRGpc7V3tDS5q2iPxd-efDJ8HTZjy97LQdhIhtf4wnyaHNjltWabj3VEE"
+        target="_blank" aria-label="WhatsApp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"></path>
+          <path d="M9 10a.5.5 0 0 0 1 0v-1a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"></path>
+        </svg>
+      </a>
+    </div>
+    <div class="announcement__ticker">
+      <div class="announcement__track" aria-hidden="false">
+        <span class="announcement__item"><svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="4" />
+          </svg>ارسال رایگان برای سفارش‌های بالای ۱۵ میلیون تومان</span>
+        <span class="announcement__item"><svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="4" />
+          </svg>تضمین اصالت و کیفیت محصولات</span>
+        <span class="announcement__item"><svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="4" />
+          </svg>ارسال سریع به سراسر ایران</span>
+        <span class="announcement__item" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="4" />
+          </svg>ارسال رایگان برای سفارش‌های بالای ۱۵ میلیون تومان</span>
+        <span class="announcement__item" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="4" />
+          </svg>تضمین اصالت و کیفیت محصولات</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ HEADER ============================ -->
+  <header class="header" id="siteHeader">
+    <div class="header__inner">
+      <button class="header__hamburger" id="hamburgerBtn" aria-label="Open menu" aria-expanded="false"
+        aria-controls="navDrawer">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" aria-label="Primary">
+        <ul class="nav__list">
+          <li class="nav__item"><a href="test.html#main" class="nav__link">خانه</a></li>
+          <li class="nav__item nav__item--mega">
+            <a href="test.html#products" class="nav__link" aria-haspopup="true" aria-expanded="false">محصولات
+              <svg class="nav__caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </a>
+            <div class="mega">
+              <div class="mega__col">
+                <h4>دسته بندی </h4>
+                <a href="chador.html" aria-current="page">چادر مجلسی</a>
+                <a href="test.html#collections">عبا</a>
+                <a href="test.html#collections">شال و روسری</a>
+                <a href="test.html#collections">کیف جواهردوزی</a>
+                <a href="test.html#collections">شومیز</a>
+              </div>
+              <div class="mega__col">
+                <h4>کالکشن ها</h4>
+                <a href="test.html#products">کالکشن اربعین</a>
+                <a href="test.html#products">کالکشن زمستانی</a>
+                <a href="test.html#products">ست های پیشنهادی هستی</a>
+                <a href="test.html#products">کالکشن اقتصادی</a>
+              </div>
+            </div>
+          </li>
+          <li class="nav__item"><a href="test.html#about" class="nav__link">درباره هستی</a></li>
+          <li class="nav__item"><a href="test.html#gallery" class="nav__link">تماس با ما</a></li>
+        </ul>
+      </nav>
+
+      <div class="header__logo">
+        <a href="test.html">
+          <span class="header__logo-sub">
+            <img src="./logo2.png" alt="logo" class="header__logo-img">
+          </span>
+        </a>
+      </div>
+
+      <div class="header__actions">
+        <button class="icon-btn" id="searchOpenBtn" aria-label="Search" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
+        </button>
+        <a href="test.html#" class="icon-btn" aria-label="Account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c1.6-4 5-6 8-6s6.4 2 8 6" />
+          </svg>
+        </a>
+        <a href="wishlist.html" class="icon-btn" aria-label="Wishlist">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" />
+          </svg>
+          <span class="icon-btn__badge" id="wishlistBadge">0</span>
+        </a>
+        <a href="test.html#" class="icon-btn" aria-label="Shopping bag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 8h12l-1 12H7L6 8Z" />
+            <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+          </svg>
+          <span class="icon-btn__badge" id="cartBadge">0</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile navigation drawer -->
+  <div class="nav-drawer" id="navDrawer">
+    <div class="nav-drawer__overlay" id="navDrawerOverlay"></div>
+    <div class="nav-drawer__panel" role="dialog" aria-modal="true" aria-label="Menu">
+      <button class="nav-drawer__close" id="navDrawerClose" aria-label="Close menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+      <ul class="nav-drawer__list">
+        <li><a href="test.html#main">Home</a></li>
+        <li class="nav-drawer__item" id="drawerShopItem">
+          <button aria-expanded="false">Shop
+            <svg class="nav__caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <div class="nav-drawer__sub">
+            <a href="chador.html">چادر</a>
+            <a href="test.html#products">عبا</a>
+            <a href="test.html#collections">شال و روسری</a>
+          </div>
+        </li>
+        <li><a href="test.html#about">About</a></li>
+        <li><a href="test.html#gallery">Gallery</a></li>
+        <li><a href="test.html#contact">Contact</a></li>
+      </ul>
+      <div class="nav-drawer__social">
+        <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M13.5 21v-8h2.7l.4-3.1h-3.1V8c0-.9.25-1.5 1.55-1.5H16.7V3.7c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.45-4 4.1v2.2H7.6V13h2.7v8h3.2Z" />
+          </svg></a>
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="5" />
+            <circle cx="12" cy="12" r="4" />
+          </svg></a>
+        <a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M16.6 5.82c-.9-.86-1.4-2.02-1.4-3.32h-3.06v13.36a2.6 2.6 0 1 1-1.84-2.49v-3.14a5.6 5.6 0 1 0 4.9 5.55V9.4a6.5 6.5 0 0 0 4.4 1.7V8.02c-1.02 0-2.02-.3-2.86-.86a4.9 4.9 0 0 1-.14-1.34Z" />
+          </svg></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-screen search overlay modal -->
+  <div class="search-overlay" id="searchOverlay" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="search-overlay__box">
+      <div class="search-overlay__row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M21 21l-4.3-4.3" />
+        </svg>
+        <input type="text" class="search-overlay__input" placeholder="عبا, فاخر, اقتصادی…" id="searchInput">
+        <button class="search-overlay__close" id="searchCloseBtn" aria-label="Close search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <p class="search-overlay__hint">عبارت مد نظر را جستجو کنید</p>
+    </div>
+  </div>
+
+  <main id="main">
+
+    <!-- ============================ BREADCRUMB ============================ -->
+    <div class="pdp-topbar">
+      <div class="container">
+        <nav class="breadcrumb" aria-label="Breadcrumb" style="margin-bottom:0; justify-content:flex-start;">
+          <a href="test.html#main">خانه</a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          <a href="test.html#products">محصولات</a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          <span class="breadcrumb__current">چادر</span>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ============================ SHOP ============================ -->
+    <section class="shop-section">
+      <div class="container">
+
+        <!-- Toolbar: sort chips + availability + mobile filter trigger -->
+        <div class="shop-toolbar fade-up">
+          <div class="shop-toolbar__sorts" id="sortChips" role="group" aria-label="مرتب‌سازی محصولات">
+            <button class="shop-sort-chip shop-sort-chip--active" data-sort="newest" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 2v13M12 15l4-4M12 15l-4-4" />
+                <path d="M5 20h14" />
+              </svg>
+              جدیدترین
+            </button>
+            <button class="shop-sort-chip" data-sort="cheapest" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 2v13M12 15l-4-4M12 15l4-4" />
+                <path d="M5 20h14" />
+              </svg>
+              ارزان‌ترین
+            </button>
+            <button class="shop-sort-chip" data-sort="expensive" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 2v13M12 15l4-4M12 15l-4-4" />
+                <path d="M5 20h14" />
+              </svg>
+              گران‌ترین
+            </button>
+            <button class="shop-sort-chip" data-sort="popular" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              پربازدیدترین
+            </button>
+          </div>
+
+          <div class="shop-toolbar__meta">
+            <p class="shop-count"><strong id="resultCount">۱۲</strong> محصول</p>
+            <div class="shop-toolbar__right">
+              <label class="shop-switch">
+                <input type="checkbox" id="availableOnlyToggle">
+                <span class="shop-switch__track" aria-hidden="true"></span>
+                فقط کالاهای موجود
+              </label>
+              <button class="shop-filter-btn" id="openFilterBtn" type="button" aria-haspopup="dialog"
+                aria-controls="shopSidebar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M4 6h16M7 12h10M10 18h4" />
+                </svg>
+                فیلترها
+                <span class="shop-filter-btn__count" id="filterCount" hidden>0</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active filter chips -->
+        <div class="shop-active-filters" id="activeFilters" hidden></div>
+
+        <div class="shop-layout">
+
+          <!-- Sidebar / mobile drawer -->
+          <aside class="shop-sidebar" id="shopSidebar" aria-label="فیلترها">
+            <div class="shop-sidebar__head">
+              <h3>فیلترها</h3>
+              <button class="shop-sidebar__close" id="closeFilterBtn" type="button" aria-label="بستن فیلترها">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="shop-sidebar__body">
+              <div class="shop-filter-group">
+                <h4 class="shop-filter-group__title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M12 20V10M12 10L6 4M12 10l6-6" />
+                  </svg>
+                  قد چادر (سانتی‌متر)
+                </h4>
+                <div class="shop-length-grid" id="lengthFilters"></div>
+              </div>
+
+              <div class="shop-filter-group">
+                <h4 class="shop-filter-group__title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M4 4h16v4a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V4Z" />
+                    <path d="M8 12v8M16 12v8" />
+                  </svg>
+                  جنس پارچه
+                </h4>
+                <div class="shop-check-list" id="fabricFilters"></div>
+              </div>
+            </div>
+
+            <div class="shop-sidebar__foot">
+              <button class="shop-btn-reset" id="resetFiltersBtn" type="button">پاک کردن</button>
+              <button class="shop-btn-apply" id="applyFiltersBtn" type="button">نمایش نتایج</button>
+            </div>
+          </aside>
+
+          <!-- Product grid -->
+          <div class="shop-content">
+            <div class="shop-grid stagger" id="productGrid"></div>
+
+            <div class="shop-empty" id="emptyState">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+              <h3>محصولی با این فیلترها پیدا نشد</h3>
+              <p>می‌توانید فیلتر «جنس پارچه» یا «قد چادر» را تغییر دهید یا همه فیلترها را پاک کنید.</p>
+              <button id="emptyClearBtn" type="button">پاک کردن فیلترها</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================ FOOTER ============================ -->
+  <footer class="footer" id="contact">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <p class="footer__logo">هستی</p>
+          <p class="footer__about-desc">مد و پوشش محترمانه برای بانوان امروز — کیفیتی ماندگار،
+            طراحی متفاوت و احترام به سلیقه شما.</p>
+          <div class="footer__social">
+            <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M13.5 21v-8h2.7l.4-3.1h-3.1V8c0-.9.25-1.5 1.55-1.5H16.7V3.7c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.45-4 4.1v2.2H7.6V13h2.7v8h3.2Z" />
+              </svg></a>
+            <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+              </svg></a>
+            <a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M16.6 5.82c-.9-.86-1.4-2.02-1.4-3.32h-3.06v13.36a2.6 2.6 0 1 1-1.84-2.49v-3.14a5.6 5.6 0 1 0 4.9 5.55V9.4a6.5 6.5 0 0 0 4.4 1.7V8.02c-1.02 0-2.02-.3-2.86-.86a4.9 4.9 0 0 1-.14-1.34Z" />
+              </svg></a>
+          </div>
+        </div>
+
+        <div class="footer__col">
+          <h3 class="footer__heading">لینک‌های سریع</h3>
+          <ul class="footer__links">
+            <li><a href="test.html#main">خانه</a></li>
+            <li><a href="chador.html">چادر</a></li>
+            <li><a href="test.html#about">درباره هستی</a></li>
+            <li><a href="test.html#gallery">تماس با ما</a></li>
+          </ul>
+        </div>
+
+        <div class="footer__col">
+          <h3 class="footer__heading">خدمات مشتریان</h3>
+          <ul class="footer__links">
+            <li><a href="installment-terms.html">خرید قسطی و دو مرحله‌ای</a></li>
+            <li><a href="test.html#location">آدرس فروشگاه</a></li>
+            <li><a href="test.html#contact">تماس با ما</a></li>
+          </ul>
+        </div>
+
+        <div class="footer__col">
+          <h3 class="footer__heading">Newsletter</h3>
+          <p class="footer__newsletter-desc">Sign up for early access to new arrivals and private sales.</p>
+          <form class="footer__form" id="newsletterForm">
+            <label for="newsletterEmail" class="visually-hidden">Email address</label>
+            <input type="email" id="newsletterEmail" class="footer__input" placeholder="Your email address" required>
+            <button type="submit" class="footer__submit" aria-label="Subscribe">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
+          </form>
+          <p class="footer__form-msg" id="newsletterMsg" role="status"></p>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <p>&copy; <span id="year"></span> هستی. کلیه حقوق محفوظ است.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="pdp-toast" id="pdpToast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+    <span id="pdpToastText">انجام شد</span>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /* ================= Shared chrome behaviors ================= */
+      var header = document.getElementById('siteHeader');
+      var onScroll = function () {
+        if (window.scrollY > 40) { header.classList.add('header--scrolled'); }
+        else { header.classList.remove('header--scrolled'); }
+      };
+      document.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+      header.classList.add('header--scrolled');
+
+      var hamburgerBtn = document.getElementById('hamburgerBtn');
+      var navDrawer = document.getElementById('navDrawer');
+      var navDrawerOverlay = document.getElementById('navDrawerOverlay');
+      var navDrawerClose = document.getElementById('navDrawerClose');
+      function openDrawer() {
+        navDrawer.classList.add('nav-drawer--open');
+        hamburgerBtn.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeDrawer() {
+        navDrawer.classList.remove('nav-drawer--open');
+        hamburgerBtn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+      }
+      hamburgerBtn.addEventListener('click', openDrawer);
+      navDrawerOverlay.addEventListener('click', closeDrawer);
+      navDrawerClose.addEventListener('click', closeDrawer);
+      document.querySelectorAll('.nav-drawer__list a').forEach(function (a) { a.addEventListener('click', closeDrawer); });
+      var drawerShopItem = document.getElementById('drawerShopItem');
+      var drawerShopBtn = drawerShopItem.querySelector('button');
+      drawerShopBtn.addEventListener('click', function () {
+        var open = drawerShopItem.classList.toggle('nav-drawer__item--open');
+        drawerShopBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+
+      document.querySelectorAll('.nav__item--mega > .nav__link').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          var item = link.closest('.nav__item');
+          var isOpen = item.classList.toggle('nav__item--open');
+          link.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+      });
+      document.addEventListener('click', function (e) {
+        document.querySelectorAll('.nav__item--mega.nav__item--open').forEach(function (item) {
+          if (!item.contains(e.target)) {
+            item.classList.remove('nav__item--open');
+            item.querySelector('.nav__link').setAttribute('aria-expanded', 'false');
+          }
+        });
+      });
+
+      var searchOpenBtn = document.getElementById('searchOpenBtn');
+      var searchOverlay = document.getElementById('searchOverlay');
+      var searchCloseBtn = document.getElementById('searchCloseBtn');
+      var searchInput = document.getElementById('searchInput');
+      function openSearch() { searchOverlay.classList.add('search-overlay--open'); setTimeout(function () { searchInput.focus(); }, 200); }
+      function closeSearch() { searchOverlay.classList.remove('search-overlay--open'); }
+      searchOpenBtn.addEventListener('click', openSearch);
+      searchCloseBtn.addEventListener('click', closeSearch);
+      searchOverlay.addEventListener('click', function (e) { if (e.target === searchOverlay) closeSearch(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSearch(); });
+
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+      document.querySelectorAll('.fade-up').forEach(function (el) { observer.observe(el); });
+
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      /* ================= Helpers ================= */
+      function toPersianNumber(num) {
+        var d = '۰۱۲۳۴۵۶۷۸۹';
+        return num.toString().replace(/\d/g, function (x) { return d[x]; });
+      }
+      function formatPrice(price) {
+        return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      }
+
+      // Toast
+      var toast = document.getElementById('pdpToast');
+      var toastText = document.getElementById('pdpToastText');
+      var toastTimer;
+      function showToast(msg) {
+        toastText.textContent = msg;
+        toast.classList.add('pdp-toast--show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove('pdp-toast--show'); }, 2400);
+      }
+
+      // Cart / wishlist badges (shared localStorage keys with product.html)
+      var cartBadge = document.getElementById('cartBadge');
+      function getCartCount() { return parseInt(localStorage.getItem('hasti_cart_count') || '0', 10); }
+      function setCartCount(n) { localStorage.setItem('hasti_cart_count', n); cartBadge.textContent = toPersianNumber(n); }
+      setCartCount(getCartCount());
+
+      var wishBadge = document.getElementById('wishlistBadge');
+      function getWishlist() { return JSON.parse(localStorage.getItem('hasti_wishlist') || '[]'); }
+      function setWishlist(list) { localStorage.setItem('hasti_wishlist', JSON.stringify(list)); }
+      function refreshWishBadge() { wishBadge.textContent = toPersianNumber(getWishlist().length); }
+      refreshWishBadge();
+
+      function toggleWishlist(id, btn) {
+        var list = getWishlist();
+        var idx = list.indexOf(id);
+        if (idx === -1) { list.push(id); showToast('به علاقه‌مندی‌ها اضافه شد'); }
+        else { list.splice(idx, 1); showToast('از علاقه‌مندی‌ها حذف شد'); }
+        setWishlist(list);
+        refreshWishBadge();
+        if (btn) {
+          var active = list.indexOf(id) !== -1;
+          btn.classList.toggle('product-card__wish--active', active);
+          btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        }
+      }
+
+      /* ================= Product data — چادر (Chador) ================= */
+      var CHADOR_IMG = './chadorItem.webp';
+      var CHADOR_PRODUCTS = [
+        { id: 'chador-negin-baran', name: 'چادر فاخر نگین باران', fabric: 'کرپ حریر', length: 160, oldPrice: 10000000, discount: 26, views: 980, dateIndex: 3, inStock: false, images: ['./04.webp', './04 (1).webp'], hue: 0 },
+        { id: 'chador-malake-mashhad', name: 'چادر ملکه مشهد', fabric: 'کرپ کریستال', length: 155, oldPrice: 8500000, discount: 15, views: 1450, dateIndex: 9, inStock: true, images: [CHADOR_IMG, CHADOR_IMG], hue: 0 },
+        { id: 'chador-erfan-sormei', name: 'چادر عرفان سرمه‌ای', fabric: 'نسیم مشکی', length: 165, oldPrice: 7200000, discount: 0, views: 610, dateIndex: 5, inStock: true, images: [CHADOR_IMG, CHADOR_IMG], hue: 210 },
+        { id: 'chador-golbarg-anari', name: 'چادر گلبرگ اناری', fabric: 'ژرسه سنگین', length: 170, oldPrice: 9800000, discount: 20, views: 2100, dateIndex: 11, inStock: true, images: [CHADOR_IMG, CHADOR_IMG], hue: 330 },
+        { id: 'chador-niloofar', name: 'چادر نیلوفر', fabric: 'ساتن مشکی', length: 160, oldPrice: 6500000, discount: 10, views: 430, dateIndex: 2, inStock: false, images: [CHADOR_IMG, CHADOR_IMG], hue: 200 },
+        { id: 'chador-bahar-narenj', name: 'چادر بهار نارنج', fabric: 'کرپ اسپاندکس', length: 155, oldPrice: 5900000, discount: 5, views: 720, dateIndex: 7, inStock: true, images: [CHADOR_IMG, CHADOR_IMG], hue: 25 },
+        { id: 'chador-shab-yalda', name: 'چادر شب یلدا', fabric: 'کرپ حریر', length: 170, oldPrice: 11200000, discount: 30, views: 3050, dateIndex: 12, inStock: true, images: [CHADOR_IMG, CHADOR_IMG], hue: 260 },
+        { id: 'chador-setare-kavir', name: 'چادر ستاره کویر', fabric: 'نسیم مشکی', length: 165, oldPrice: 7800000, discount: 0, views: 890, dateIndex: 4, inStock: true, images: [CHADOR_IMG, CHADOR_IMG], hue: 45 },
+        { id: 'chador-morjan', name: 'چادر مرجان', fabric: 'کرپ کریستال', length: 160, oldPrice: 8900000, discount: 12, views: 1200, dateIndex: 8, inStock: true, images: [CHADOR_IMG, CHADOR_IMG], hue: 350 },
+        { id: 'chador-aftab-madine', name: 'چادر آفتاب مدینه', fabric: 'ژرسه سنگین', length: 155, oldPrice: 6900000, discount: 8, views: 540, dateIndex: 1, inStock: false, images: [CHADOR_IMG, CHADOR_IMG], hue: 190 },
+        { id: 'chador-negar', name: 'چادر نگار', fabric: 'ساتن مشکی', length: 165, oldPrice: 7400000, discount: 18, views: 990, dateIndex: 10, inStock: true, images: [CHADOR_IMG, CHADOR_IMG], hue: 205 },
+        { id: 'chador-yasaman', name: 'چادر یاسمن', fabric: 'کرپ اسپاندکس', length: 170, oldPrice: 6200000, discount: 0, views: 300, dateIndex: 6, inStock: true, images: [CHADOR_IMG, CHADOR_IMG], hue: 95 }
+      ];
+
+      CHADOR_PRODUCTS.forEach(function (p) {
+        p.currentPrice = Math.round(p.oldPrice - (p.oldPrice * p.discount / 100));
+      });
+
+      var LENGTH_OPTIONS = [155, 160, 165, 170];
+      var FABRIC_OPTIONS = [];
+      CHADOR_PRODUCTS.forEach(function (p) { if (FABRIC_OPTIONS.indexOf(p.fabric) === -1) FABRIC_OPTIONS.push(p.fabric); });
+
+      /* ================= Filter / sort state ================= */
+      var state = {
+        sort: 'newest',
+        availableOnly: false,
+        lengths: [],
+        fabrics: []
+      };
+
+      function countFor(predicate) {
+        return CHADOR_PRODUCTS.filter(predicate).length;
+      }
+
+      /* ---------- Build sidebar controls ---------- */
+      var lengthWrap = document.getElementById('lengthFilters');
+      LENGTH_OPTIONS.forEach(function (len) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'shop-length-chip';
+        btn.setAttribute('data-length', len);
+        btn.innerHTML = toPersianNumber(len) + ' <span class="count">(' + toPersianNumber(countFor(function (p) { return p.length === len; })) + ')</span>';
+        btn.addEventListener('click', function () {
+          toggleValue(state.lengths, len);
+          btn.classList.toggle('shop-length-chip--active', state.lengths.indexOf(len) !== -1);
+          render();
+        });
+        lengthWrap.appendChild(btn);
+      });
+
+      var fabricWrap = document.getElementById('fabricFilters');
+      FABRIC_OPTIONS.forEach(function (fabric) {
+        var label = document.createElement('label');
+        label.className = 'shop-check';
+        var count = countFor(function (p) { return p.fabric === fabric; });
+        label.innerHTML =
+          '<input type="checkbox" data-fabric="' + fabric + '">' +
+          '<span class="shop-check__label">' + fabric + '</span>' +
+          '<span class="shop-check__count">' + toPersianNumber(count) + '</span>';
+        var input = label.querySelector('input');
+        input.addEventListener('change', function () {
+          toggleValue(state.fabrics, fabric);
+          render();
+        });
+        fabricWrap.appendChild(label);
+      });
+
+      function toggleValue(arr, val) {
+        var idx = arr.indexOf(val);
+        if (idx === -1) arr.push(val); else arr.splice(idx, 1);
+      }
+
+      /* ---------- Sort chips ---------- */
+      var sortChips = document.querySelectorAll('.shop-sort-chip');
+      sortChips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          state.sort = chip.getAttribute('data-sort');
+          sortChips.forEach(function (c) { c.classList.remove('shop-sort-chip--active'); });
+          chip.classList.add('shop-sort-chip--active');
+          render();
+        });
+      });
+
+      /* ---------- Availability toggle ---------- */
+      var availableToggle = document.getElementById('availableOnlyToggle');
+      availableToggle.addEventListener('change', function () {
+        state.availableOnly = availableToggle.checked;
+        render();
+      });
+
+      /* ---------- Mobile filter drawer ---------- */
+      var sidebar = document.getElementById('shopSidebar');
+      var openFilterBtn = document.getElementById('openFilterBtn');
+      var closeFilterBtn = document.getElementById('closeFilterBtn');
+      var applyFiltersBtn = document.getElementById('applyFiltersBtn');
+      var sidebarHome = sidebar.parentNode;
+      var sidebarOverlay = document.createElement('div');
+      sidebarOverlay.className = 'shop-sidebar-overlay';
+      sidebarOverlay.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(sidebarOverlay);
+
+      function isMobileDrawer() {
+        return window.matchMedia('(max-width: 1023.98px)').matches;
+      }
+
+      function openSidebar() {
+        if (!isMobileDrawer()) return;
+        document.body.appendChild(sidebar);
+        sidebar.setAttribute('role', 'dialog');
+        sidebar.setAttribute('aria-modal', 'true');
+        sidebar.classList.add('shop-sidebar--open');
+        sidebarOverlay.classList.add('shop-sidebar-overlay--open');
+        openFilterBtn.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+        closeFilterBtn.focus();
+      }
+
+      function closeSidebar() {
+        var wasOpen = sidebar.classList.contains('shop-sidebar--open');
+        sidebar.classList.remove('shop-sidebar--open');
+        sidebarOverlay.classList.remove('shop-sidebar-overlay--open');
+        sidebar.removeAttribute('role');
+        sidebar.removeAttribute('aria-modal');
+        openFilterBtn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+        if (sidebar.parentNode !== sidebarHome) {
+          sidebarHome.insertBefore(sidebar, sidebarHome.firstChild);
+        }
+        if (wasOpen && isMobileDrawer()) openFilterBtn.focus();
+      }
+
+      openFilterBtn.setAttribute('aria-expanded', 'false');
+      openFilterBtn.addEventListener('click', openSidebar);
+      closeFilterBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSidebar();
+      });
+      applyFiltersBtn.addEventListener('click', closeSidebar);
+      sidebarOverlay.addEventListener('click', closeSidebar);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sidebar.classList.contains('shop-sidebar--open')) closeSidebar();
+      });
+      window.addEventListener('resize', function () {
+        if (!isMobileDrawer() && sidebar.classList.contains('shop-sidebar--open')) {
+          closeSidebar();
+        }
+      });
+
+      /* ---------- Reset ---------- */
+      function resetFilters() {
+        state.lengths = [];
+        state.fabrics = [];
+        state.availableOnly = false;
+        availableToggle.checked = false;
+        lengthWrap.querySelectorAll('.shop-length-chip').forEach(function (b) { b.classList.remove('shop-length-chip--active'); });
+        fabricWrap.querySelectorAll('input').forEach(function (i) { i.checked = false; });
+        render();
+      }
+      document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
+      document.getElementById('emptyClearBtn').addEventListener('click', resetFilters);
+
+      /* ---------- Active filter chips ---------- */
+      var activeFiltersWrap = document.getElementById('activeFilters');
+      function renderActiveChips() {
+        var chips = [];
+        state.lengths.forEach(function (len) {
+          chips.push({ label: 'قد ' + toPersianNumber(len) + ' سانتی‌متر', remove: function () { removeLength(len); } });
+        });
+        state.fabrics.forEach(function (fabric) {
+          chips.push({ label: fabric, remove: function () { removeFabric(fabric); } });
+        });
+        if (state.availableOnly) {
+          chips.push({ label: 'فقط کالاهای موجود', remove: function () { availableToggle.checked = false; state.availableOnly = false; render(); } });
+        }
+
+        activeFiltersWrap.innerHTML = '';
+        if (!chips.length) { activeFiltersWrap.hidden = true; return; }
+        activeFiltersWrap.hidden = false;
+
+        chips.forEach(function (chip) {
+          var el = document.createElement('span');
+          el.className = 'shop-chip';
+          el.innerHTML = chip.label + '<button type="button" aria-label="حذف فیلتر"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+          el.querySelector('button').addEventListener('click', chip.remove);
+          activeFiltersWrap.appendChild(el);
+        });
+
+        var clearAll = document.createElement('button');
+        clearAll.type = 'button';
+        clearAll.className = 'shop-clear-all';
+        clearAll.textContent = 'پاک کردن همه فیلترها';
+        clearAll.addEventListener('click', resetFilters);
+        activeFiltersWrap.appendChild(clearAll);
+      }
+      function removeLength(len) {
+        toggleValue(state.lengths, len);
+        lengthWrap.querySelectorAll('.shop-length-chip').forEach(function (b) {
+          if (parseInt(b.getAttribute('data-length'), 10) === len) b.classList.remove('shop-length-chip--active');
+        });
+        render();
+      }
+      function removeFabric(fabric) {
+        toggleValue(state.fabrics, fabric);
+        fabricWrap.querySelectorAll('input').forEach(function (i) {
+          if (i.getAttribute('data-fabric') === fabric) i.checked = false;
+        });
+        render();
+      }
+
+      /* ---------- Filter button badge ---------- */
+      var filterCountEl = document.getElementById('filterCount');
+      function updateFilterCount() {
+        var n = state.lengths.length + state.fabrics.length + (state.availableOnly ? 1 : 0);
+        filterCountEl.textContent = toPersianNumber(n);
+        filterCountEl.hidden = n === 0;
+      }
+
+      /* ---------- Filtering + sorting ---------- */
+      function getFilteredSorted() {
+        var list = CHADOR_PRODUCTS.filter(function (p) {
+          if (state.availableOnly && !p.inStock) return false;
+          if (state.lengths.length && state.lengths.indexOf(p.length) === -1) return false;
+          if (state.fabrics.length && state.fabrics.indexOf(p.fabric) === -1) return false;
+          return true;
+        });
+
+        list.sort(function (a, b) {
+          switch (state.sort) {
+            case 'cheapest': return a.currentPrice - b.currentPrice;
+            case 'expensive': return b.currentPrice - a.currentPrice;
+            case 'popular': return b.views - a.views;
+            case 'newest':
+            default: return b.dateIndex - a.dateIndex;
+          }
+        });
+        return list;
+      }
+
+      /* ---------- Render product cards ---------- */
+      var grid = document.getElementById('productGrid');
+      var emptyState = document.getElementById('emptyState');
+      var resultCountEl = document.getElementById('resultCount');
+
+      var viewIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+      var heartIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg>';
+
+      function render() {
+        updateFilterCount();
+        renderActiveChips();
+
+        var list = getFilteredSorted();
+        resultCountEl.textContent = toPersianNumber(list.length);
+        grid.innerHTML = '';
+
+        if (!list.length) {
+          emptyState.classList.add('shop-empty--show');
+          return;
+        }
+        emptyState.classList.remove('shop-empty--show');
+
+        var wishlist = getWishlist();
+
+        list.forEach(function (p, i) {
+          var article = document.createElement('article');
+          article.className = 'product-card fade-up' + (!p.inStock ? ' product-card--oos' : '');
+          article.style.setProperty('--i', i % 6);
+          article.setAttribute('data-fabric', p.fabric);
+          article.setAttribute('data-length', String(p.length));
+
+          var isWished = wishlist.indexOf(p.id) !== -1;
+          var filterCss = p.hue ? ' style="filter:hue-rotate(' + p.hue + 'deg) saturate(1.05)"' : '';
+
+          article.innerHTML =
+            '<div class="product-card__image-wrap">' +
+              (p.discount ? '<span class="product-card__badge">' + toPersianNumber(p.discount) + '٪ تخفیف</span>' : '') +
+              (!p.inStock ? '<span class="product-card__ribbon">ناموجود</span>' : '') +
+              '<button class="product-card__wish' + (isWished ? ' product-card__wish--active' : '') + '" aria-label="افزودن به علاقه‌مندی‌ها" aria-pressed="' + isWished + '">' + heartIcon + '</button>' +
+              '<img class="product-card__img product-card__img--primary"' + filterCss + ' src="' + p.images[0] + '" alt="' + p.name + '" loading="lazy">' +
+              '<img class="product-card__img product-card__img--secondary"' + filterCss + ' src="' + p.images[1] + '" alt="' + p.name + '" loading="lazy">' +
+            '</div>' +
+            '<div class="product-card__body">' +
+              '<p class="product-card__name">' + p.name + '</p>' +
+              '<span class="visually-hidden product-card__fabric">' + p.fabric + ' · قد ' + toPersianNumber(p.length) + ' سانتی‌متر</span>' +
+              '<div class="product-card__meta-row">' +
+                '<span class="product-card__views">' + viewIcon + toPersianNumber(p.views) + ' بازدید</span>' +
+              '</div>' +
+              '<div class="product-card__prices">' +
+                (p.discount ? '<span class="product-card__price--old">' + toPersianNumber(formatPrice(p.oldPrice)) + ' تومان</span>' : '') +
+                '<span class="product-card__price--current">' + toPersianNumber(formatPrice(p.currentPrice)) + ' تومان</span>' +
+              '</div>' +
+              '<a href="product.html?id=' + p.id + '" class="btn btn--outline-dark quick-add">' + (p.inStock ? 'مشاهده محصول' : 'اطلاع از موجود شدن') + '</a>' +
+            '</div>';
+
+          article.querySelector('.product-card__wish').addEventListener('click', function (e) {
+            toggleWishlist(p.id, e.currentTarget);
+          });
+
+          grid.appendChild(article);
+          observer.observe(article);
+        });
+      }
+
+      render();
+
+      /* ---------- Newsletter (footer) ---------- */
+      var newsletterForm = document.getElementById('newsletterForm');
+      var newsletterMsg = document.getElementById('newsletterMsg');
+      newsletterForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        newsletterMsg.textContent = "Thank you — you're on the list.";
+        newsletterForm.reset();
+      });
+
+    })();
+  </script>
+</body>
+
+</html>

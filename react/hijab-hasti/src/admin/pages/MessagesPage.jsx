@@ -1,0 +1,18 @@
+import { useEffect } from 'react';
+import { initMessages } from '../inits/initMessages.js';
+
+const HTML = "<div class=\"page-head\">\r\n        <div>\r\n          <nav class=\"breadcrumb\" aria-label=\"مسیر صفحه\">\r\n            <a href=\"/admin\">داشبورد</a>\r\n            <span aria-hidden=\"true\">/</span>\r\n            <span>پیام‌ها و تیکت</span>\r\n          </nav>\r\n          <h1 class=\"page-title\">پیام‌ها و تیکت</h1>\r\n          <p class=\"page-sub\">\r\n            همه کانال‌های ارتباطی مشتری در یک صفحه — تیکت پشتیبانی، فرم تماس،\r\n            درخواست اطلاع از موجودی و مشترکین خبرنامه.\r\n          </p>\r\n        </div>\r\n        <div class=\"page-head__actions\">\r\n          <a class=\"btn btn--ghost btn--sm\" href=\"https://wa.me/989152500553\" target=\"_blank\" rel=\"noopener\">\r\n            واتساپ فروشگاه\r\n          </a>\r\n          <button class=\"btn btn--gold btn--sm\" type=\"button\" id=\"exportBtn\">\r\n            برون‌بری تب فعال\r\n          </button>\r\n        </div>\r\n      </div>\r\n\r\n      <div class=\"grid grid--kpi mb-3\" id=\"messageKpis\"></div>\r\n\r\n      <div class=\"tabs mb-3\" id=\"mainTabs\">\r\n        <button class=\"tab tab--active\" type=\"button\" data-panel=\"tickets\" aria-pressed=\"true\">\r\n          تیکت پشتیبانی<span class=\"tab__count\" id=\"cntTickets\">۰</span>\r\n        </button>\r\n        <button class=\"tab\" type=\"button\" data-panel=\"contact\" aria-pressed=\"false\">\r\n          پیام تماس با ما<span class=\"tab__count\" id=\"cntContact\">۰</span>\r\n        </button>\r\n        <button class=\"tab\" type=\"button\" data-panel=\"restock\" aria-pressed=\"false\">\r\n          درخواست موجودی<span class=\"tab__count\" id=\"cntRestock\">۰</span>\r\n        </button>\r\n        <button class=\"tab\" type=\"button\" data-panel=\"newsletter\" aria-pressed=\"false\">\r\n          خبرنامه<span class=\"tab__count\" id=\"cntNewsletter\">۰</span>\r\n        </button>\r\n      </div>\r\n\r\n      <section class=\"tab-panel tab-panel--active\" data-panel=\"tickets\">\r\n        <div class=\"card\">\r\n          <div id=\"ticketTable\"></div>\r\n        </div>\r\n      </section>\r\n\r\n      <section class=\"tab-panel\" data-panel=\"contact\">\r\n        <div class=\"card\">\r\n          <div id=\"contactTable\"></div>\r\n        </div>\r\n      </section>\r\n\r\n      <section class=\"tab-panel\" data-panel=\"restock\">\r\n        <div class=\"notice notice--gold mb-3\">\r\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\">\r\n            <path d=\"M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9\" />\r\n            <path d=\"M13.7 21a2 2 0 0 1-3.4 0\" />\r\n          </svg>\r\n          <div>\r\n            <b>درخواست‌های آماده اطلاع‌رسانی</b>\r\n            <div class=\"text-sm\">\r\n              محصولاتی که مشتری منتظرشان بوده و اکنون موجود شده‌اند، با دکمه «اطلاع‌رسانی گروهی» قابل پیگیری هستند.\r\n            </div>\r\n          </div>\r\n        </div>\r\n        <div class=\"grid grid--2 mb-3\" id=\"restockGroups\"></div>\r\n        <div class=\"card\">\r\n          <div id=\"restockTable\"></div>\r\n        </div>\r\n      </section>\r\n\r\n      <section class=\"tab-panel\" data-panel=\"newsletter\">\r\n        <div class=\"card\">\r\n          <div id=\"newsletterTable\"></div>\r\n        </div>\r\n      </section>";
+
+export default function MessagesPage() {
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      
+      if (!alive) return;
+      await initMessages();
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  return <div dangerouslySetInnerHTML={{ __html: HTML }} />;
+}

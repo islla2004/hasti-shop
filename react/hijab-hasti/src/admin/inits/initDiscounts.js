@@ -1,0 +1,555 @@
+import { Admin } from '../adminShared.js';
+import { dataService } from '../data/dataService.js';
+import { HASTI_MOCK } from '../data/mockData.js';
+
+export async function initDiscounts() {
+
+
+      var discounts = [], campaigns = [], categories = [], collections = [], products = [];
+      var tableApi = null;
+      var activeTab = 'codes';
+
+      (async function init() {
+        await Admin.shell("discounts");
+        Admin.tableSkeleton('#discountTable', 6);
+
+        var res = await Promise.all([
+          dataService.getDiscounts(),
+          dataService.getCampaigns(),
+          dataService.getCategories(),
+          dataService.getCollections(),
+          dataService.getProducts()
+        ]);
+        discounts = res[0];
+        campaigns = res[1];
+        categories = res[2];
+        collections = res[3];
+        products = res[4];
+
+        renderKpis();
+        buildTable();
+        renderCampaigns();
+        bindTabs();
+
+        document.getElementById('addBtn').addEventListener('click', function () {
+          if (activeTab === 'codes') discountDialog();
+          else campaignDialog();
+        });
+      })();
+
+      /* ============================== KPI ها ============================ */
+      function renderKpis() {
+        var active = discounts.filter(function (d) { return d.status === 'active'; }).length;
+        var totalUses = discounts.reduce(function (s, d) { return s + d.usedCount; }, 0);
+        var totalGiven = discounts.reduce(function (s, d) { return s + d.totalDiscountGiven; }, 0);
+        var campaignRevenue = campaigns.reduce(function (s, c) { return s + c.revenue; }, 0);
+
+        var cards = [
+          { label: 'کدهای فعال', value: Admin.fa(active), unit: 'کد', icon: 'ticket', tone: 'success', note: 'از مجموع ' + Admin.fa(discounts.length) + ' کد' },
+          { label: 'تعداد کل استفاده', value: Admin.fa(totalUses), unit: 'بار', icon: 'activity', tone: 'info' },
+          { label: 'مجموع تخفیف اعطاشده', value: Admin.moneyShort(totalGiven), unit: 'تومان', icon: 'percent', tone: 'warning' },
+          { label: 'درآمد کمپین‌ها', value: Admin.moneyShort(campaignRevenue), unit: 'تومان', icon: 'sparkle', tone: '' }
+        ];
+
+        document.getElementById('discountKpis').innerHTML = cards.map(function (c, i) {
+          return '<article class="kpi reveal" style="animation-delay:' + (i * 50) + 'ms">' +
+            '<div class="kpi__top"><span class="kpi__label">' + Admin.escapeHtml(c.label) + '</span>' +
+            '<span class="kpi__icon' + (c.tone ? ' kpi__icon--' + c.tone : '') + '">' + Admin.icon(c.icon) + '</span></div>' +
+            '<div class="kpi__value">' + c.value + '<small>' + c.unit + '</small></div>' +
+            (c.note ? '<div class="kpi__foot"><span>' + Admin.escapeHtml(c.note) + '</span></div>' : '') +
+            '</article>';
+        }).join('');
+
+        document.getElementById('countCodes').textContent = Admin.fa(discounts.length);
+        document.getElementById('countCampaigns').textContent = Admin.fa(campaigns.length);
+      }
+
+      /* =============================== تب‌ها =========================== */
+      function bindTabs() {
+        Admin.$$('[data-tab]').forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            activeTab = tab.getAttribute('data-tab');
+            Admin.$$('[data-tab]').forEach(function (t) {
+              t.classList.toggle('tab--active', t === tab);
+              t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+            });
+            Admin.$$('[data-panel]').forEach(function (panel) {
+              panel.classList.toggle('tab-panel--active', panel.getAttribute('data-panel') === activeTab);
+            });
+            document.getElementById('addBtn').textContent =
+              activeTab === 'codes' ? 'ساخت کد تخفیف' : 'ساخت کمپین';
+          });
+        });
+      }
+
+      /* ========================== جدول کدهای تخفیف ===================== */
+      function buildTable() {
+        tableApi = Admin.table({
+          mount: '#discountTable',
+          rows: discounts,
+          rowKey: 'id',
+          pageSize: 8,
+          searchKeys: ['code'],
+          searchPlaceholder: 'جست‌وجوی کد تخفیف…',
+          defaultSort: { key: 'startDate', dir: 'desc' },
+          filters: [
+            {
+              key: 'status', label: 'وضعیت',
+              options: [
+                { value: 'active', label: 'فعال' },
+                { value: 'scheduled', label: 'زمان‌بندی‌شده' },
+                { value: 'expired', label: 'منقضی‌شده' },
+                { value: 'inactive', label: 'غیرفعال' }
+              ]
+            },
+            {
+              key: 'type', label: 'نوع تخفیف',
+              options: [
+                { value: 'percent', label: 'درصدی' },
+                { value: 'fixed', label: 'مبلغ ثابت' }
+              ]
+            },
+            {
+              key: 'appliesTo', label: 'دامنه اعمال',
+              options: [
+                { value: 'all', label: 'کل فروشگاه' },
+                { value: 'category', label: 'دسته‌بندی' },
+                { value: 'collection', label: 'کالکشن' },
+                { value: 'product', label: 'محصول خاص' }
+              ]
+            }
+          ],
+          actions: [
+            { label: 'برون‌بری CSV', icon: 'download', variant: 'btn--ghost', onClick: exportCodes }
+          ],
+          empty: {
+            icon: 'ticket',
+            title: 'کد تخفیفی ساخته نشده است',
+            desc: 'با ساخت کد تخفیف می‌توانید فروش کمپین‌های خود را افزایش دهید.',
+            actionLabel: 'ساخت کد تخفیف',
+            onAction: function () { discountDialog(); }
+          },
+          columns: [
+            {
+              key: 'code', label: 'کد تخفیف', sortable: true,
+              render: function (d) {
+                return '<div class="row row--tight">' +
+                  '<b class="ltr" style="font-size:13.5px;color:var(--c-jet);letter-spacing:.5px">' +
+                  Admin.escapeHtml(d.code) + '</b>' +
+                  '<button class="act-btn" type="button" data-copy="' + Admin.escapeHtml(d.code) + '" ' +
+                  'title="کپی کد" aria-label="کپی کد ' + Admin.escapeHtml(d.code) + '">' + Admin.icon('copy') + '</button>' +
+                  '</div>';
+              }
+            },
+            {
+              key: 'value', label: 'مقدار تخفیف', sortable: true,
+              render: function (d) {
+                return '<b>' + (d.type === 'percent' ? Admin.percent(d.value) : Admin.money(d.value)) + '</b>' +
+                  '<span class="cell-sub">' + (d.type === 'percent' ? 'درصدی' : 'مبلغ ثابت') + '</span>';
+              }
+            },
+            {
+              key: 'appliesTo', label: 'دامنه اعمال', sortable: true,
+              render: function (d) {
+                var labels = { all: 'کل فروشگاه', category: 'دسته‌بندی', collection: 'کالکشن', product: 'محصول' };
+                return Admin.badge(labels[d.appliesTo] || d.appliesTo, 'neutral', 'target') +
+                  (d.targetNames.length ? '<span class="cell-sub">' +
+                    Admin.escapeHtml(d.targetNames.join('، ')) + '</span>' : '');
+              }
+            },
+            {
+              key: 'minOrder', label: 'حداقل سبد خرید', sortable: true, className: 'num',
+              render: function (d) { return Admin.fa(Admin.price(d.minOrder)); }
+            },
+            {
+              key: 'usedCount', label: 'میزان مصرف', sortable: true, className: 'num',
+              render: function (d) {
+                var rate = d.maxUses ? Math.round(d.usedCount / d.maxUses * 100) : 0;
+                return '<b>' + Admin.fa(d.usedCount) + ' از ' + Admin.fa(d.maxUses) + '</b>' +
+                  '<span class="bar" style="margin-top:5px"><span class="bar__fill' +
+                  (rate >= 100 ? ' bar__fill--danger' : (rate >= 80 ? ' bar__fill--warning' : '')) +
+                  '" style="width:' + Math.min(100, rate) + '%"></span></span>' +
+                  '<span class="cell-sub">هر مشتری ' + Admin.fa(d.perCustomer) + ' بار</span>';
+              }
+            },
+            {
+              key: 'totalDiscountGiven', label: 'تخفیف اعطاشده', sortable: true, className: 'num',
+              render: function (d) { return Admin.moneyShort(d.totalDiscountGiven); }
+            },
+            {
+              key: 'startDate', label: 'بازه اعتبار', sortable: true,
+              render: function (d) {
+                return '<span class="num">' + Admin.jShort(d.startDate) + ' تا ' + Admin.jShort(d.endDate) + '</span>';
+              }
+            },
+            {
+              key: 'status', label: 'وضعیت', sortable: true,
+              render: function (d) { return Admin.genericStatus(d.status); }
+            },
+            {
+              key: 'actions', label: 'عملیات', className: 'col-actions',
+              render: function (d) {
+                return '<div class="cell-actions">' +
+                  '<button class="act-btn" type="button" data-edit="' + d.id + '" ' +
+                  'title="ویرایش" aria-label="ویرایش کد ' + Admin.escapeHtml(d.code) + '">' + Admin.icon('edit') + '</button>' +
+                  '<button class="act-btn" type="button" data-toggle="' + d.id + '" ' +
+                  'title="فعال/غیرفعال" aria-label="تغییر وضعیت کد">' + Admin.icon('refresh') + '</button>' +
+                  '<button class="act-btn act-btn--danger" type="button" data-delete="' + d.id + '" ' +
+                  'title="حذف" aria-label="حذف کد">' + Admin.icon('trash') + '</button></div>';
+              }
+            }
+          ]
+        });
+
+        document.getElementById('discountTable').addEventListener('click', async function (e) {
+          var copyBtn = e.target.closest('[data-copy]');
+          var editBtn = e.target.closest('[data-edit]');
+          var toggleBtn = e.target.closest('[data-toggle]');
+          var delBtn = e.target.closest('[data-delete]');
+
+          if (copyBtn) {
+            var code = copyBtn.getAttribute('data-copy');
+            try {
+              await navigator.clipboard.writeText(code);
+              Admin.toast('کد «' + code + '» کپی شد');
+            } catch (err) {
+              Admin.toast('امکان کپی خودکار در این مرورگر وجود ندارد', 'warning');
+            }
+          }
+
+          if (editBtn) {
+            discountDialog(find(editBtn.getAttribute('data-edit')));
+          }
+
+          if (toggleBtn) {
+            var d = find(toggleBtn.getAttribute('data-toggle'));
+            var next = d.status === 'active' ? 'inactive' : 'active';
+            await dataService.saveDiscount({ id: d.id, status: next });
+            await reload();
+            Admin.toast('کد «' + d.code + '» ' + (next === 'active' ? 'فعال' : 'غیرفعال') + ' شد');
+          }
+
+          if (delBtn) {
+            var target = find(delBtn.getAttribute('data-delete'));
+            var ok = await Admin.confirm({
+              title: 'حذف کد تخفیف', danger: true, icon: 'trash',
+              message: 'کد «<b class="ltr">' + Admin.escapeHtml(target.code) + '</b>» حذف شود؟ ' +
+                'سفارش‌های ثبت‌شده با این کد تغییری نمی‌کنند.',
+              confirmLabel: 'حذف کد'
+            });
+            if (!ok) return;
+            await dataService.deleteDiscount(target.id);
+            await reload();
+            Admin.toast('کد تخفیف حذف شد');
+          }
+        });
+      }
+
+      function find(id) {
+        return discounts.filter(function (d) { return d.id === id; })[0];
+      }
+
+      async function reload() {
+        discounts = await dataService.getDiscounts();
+        campaigns = await dataService.getCampaigns();
+        renderKpis();
+        tableApi.setRows(discounts);
+        renderCampaigns();
+      }
+
+      function exportCodes() {
+        Admin.exportCsv('hasti-discounts.csv', [
+          { label: 'کد', key: 'code' },
+          { label: 'نوع', value: function (d) { return d.type === 'percent' ? 'درصدی' : 'مبلغ ثابت'; } },
+          { label: 'مقدار', key: 'value' },
+          { label: 'حداقل سبد خرید', key: 'minOrder' },
+          { label: 'حداکثر استفاده', key: 'maxUses' },
+          { label: 'استفاده‌شده', key: 'usedCount' },
+          { label: 'سقف هر مشتری', key: 'perCustomer' },
+          { label: 'دامنه', key: 'appliesTo' },
+          { label: 'اهداف', value: function (d) { return d.targetNames.join(' | '); } },
+          { label: 'تاریخ شروع', key: 'startDate' },
+          { label: 'تاریخ پایان', key: 'endDate' },
+          { label: 'وضعیت', key: 'status' },
+          { label: 'مجموع تخفیف اعطاشده', key: 'totalDiscountGiven' }
+        ], tableApi.getFiltered());
+      }
+
+      /* ========================= فرم کد تخفیف ========================== */
+      function discountDialog(d) {
+        var isEdit = !!d;
+        var data = d || {
+          id: '', code: '', type: 'percent', value: 10, minOrder: 3000000, maxUses: 100,
+          perCustomer: 1, appliesTo: 'all', targetIds: [],
+          startDate: dataService.today(), endDate: '1403-12-29', status: 'active'
+        };
+
+        Admin.modal({
+          title: isEdit ? 'ویرایش کد تخفیف' : 'ساخت کد تخفیف',
+          icon: 'ticket',
+          wide: true,
+          body:
+            '<div class="form-grid">' +
+            '<div class="field"><label class="label" for="dCode">کد تخفیف <span class="req">*</span></label>' +
+            '<div class="row row--tight">' +
+            '<input class="input ltr" id="dCode" value="' + Admin.escapeHtml(data.code) + '" ' +
+            'placeholder="HASTI20" style="flex:1">' +
+            '<button class="btn btn--ghost btn--sm" type="button" id="dGen">تولید</button></div>' +
+            '<span class="hint">فقط حروف بزرگ انگلیسی و عدد.</span></div>' +
+
+            '<div class="field"><label class="label" for="dStatus">وضعیت</label>' +
+            '<select class="select" id="dStatus">' +
+            ['active', 'scheduled', 'inactive', 'expired'].map(function (s) {
+              return '<option value="' + s + '"' + (data.status === s ? ' selected' : '') + '>' +
+                Admin.GENERIC_STATUS[s].label + '</option>';
+            }).join('') + '</select></div>' +
+
+            '<div class="field"><label class="label" for="dType">نوع تخفیف</label>' +
+            '<select class="select" id="dType">' +
+            '<option value="percent"' + (data.type === 'percent' ? ' selected' : '') + '>درصدی</option>' +
+            '<option value="fixed"' + (data.type === 'fixed' ? ' selected' : '') + '>مبلغ ثابت</option>' +
+            '</select></div>' +
+
+            '<div class="field"><label class="label" for="dValue">مقدار تخفیف <span class="req">*</span></label>' +
+            '<div class="input-group"><input class="input num" id="dValue" value="' + data.value + '" inputmode="numeric">' +
+            '<span class="input-group__affix" id="dValueAffix">' +
+            (data.type === 'percent' ? 'درصد' : 'تومان') + '</span></div></div>' +
+
+            '<div class="field"><label class="label" for="dMinOrder">حداقل مبلغ سبد خرید</label>' +
+            '<div class="input-group"><input class="input num" id="dMinOrder" value="' +
+            Admin.fa(Admin.price(data.minOrder)) + '" inputmode="numeric">' +
+            '<span class="input-group__affix">تومان</span></div></div>' +
+
+            '<div class="field"><label class="label" for="dMaxUses">حداکثر تعداد استفاده</label>' +
+            '<input class="input num" type="number" id="dMaxUses" min="1" value="' + data.maxUses + '"></div>' +
+
+            '<div class="field"><label class="label" for="dPerCustomer">سقف استفاده هر مشتری</label>' +
+            '<input class="input num" type="number" id="dPerCustomer" min="1" value="' + data.perCustomer + '"></div>' +
+
+            '<div class="field"><label class="label" for="dApplies">دامنه اعمال</label>' +
+            '<select class="select" id="dApplies">' +
+            '<option value="all"' + (data.appliesTo === 'all' ? ' selected' : '') + '>کل فروشگاه</option>' +
+            '<option value="category"' + (data.appliesTo === 'category' ? ' selected' : '') + '>دسته‌بندی خاص</option>' +
+            '<option value="collection"' + (data.appliesTo === 'collection' ? ' selected' : '') + '>کالکشن خاص</option>' +
+            '<option value="product"' + (data.appliesTo === 'product' ? ' selected' : '') + '>محصول خاص</option>' +
+            '</select></div>' +
+
+            '<div class="field field--full" id="dTargetField" hidden>' +
+            '<label class="label" for="dTargets">انتخاب هدف</label>' +
+            '<select class="select" id="dTargets" multiple size="5" ' +
+            'style="min-height:auto;padding-inline-start:14px;background-image:none"></select>' +
+            '<span class="hint">با نگه‌داشتن Ctrl چند مورد را انتخاب کنید.</span></div>' +
+
+            '<div class="field"><label class="label" for="dStart">تاریخ شروع</label>' +
+            '<input class="input ltr" id="dStart" value="' + data.startDate + '" placeholder="1403-07-14"></div>' +
+
+            '<div class="field"><label class="label" for="dEnd">تاریخ پایان</label>' +
+            '<input class="input ltr" id="dEnd" value="' + data.endDate + '" placeholder="1403-12-29"></div>' +
+            '</div>',
+          actions: [
+            { label: 'انصراف', variant: 'btn--ghost', onClick: function (m) { m.close(); } },
+            {
+              label: isEdit ? 'ذخیره تغییرات' : 'ساخت کد', variant: 'btn--primary',
+              onClick: async function (m) {
+                var code = document.getElementById('dCode').value.trim().toUpperCase();
+                var type = document.getElementById('dType').value;
+                var value = Number(Admin.toEn(document.getElementById('dValue').value).replace(/[^\d]/g, '')) || 0;
+                var start = Admin.toEn(document.getElementById('dStart').value.trim());
+                var end = Admin.toEn(document.getElementById('dEnd').value.trim());
+                var appliesTo = document.getElementById('dApplies').value;
+
+                if (!/^[A-Z0-9]{3,}$/.test(code)) {
+                  Admin.toast('کد تخفیف باید حداقل ۳ کاراکتر و شامل حروف بزرگ انگلیسی یا عدد باشد', 'error');
+                  return;
+                }
+                var duplicate = discounts.some(function (x) { return x.code === code && x.id !== data.id; });
+                if (duplicate) { Admin.toast('این کد قبلاً ثبت شده است', 'error'); return; }
+                if (type === 'percent' && (value < 1 || value > 100)) {
+                  Admin.toast('درصد تخفیف باید بین ۱ تا ۱۰۰ باشد', 'error');
+                  return;
+                }
+                if (!value) { Admin.toast('مقدار تخفیف را وارد کنید', 'error'); return; }
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+                  Admin.toast('تاریخ‌ها باید با قالب ۱۴۰۳-۰۷-۱۴ وارد شوند', 'error');
+                  return;
+                }
+                if (end < start) { Admin.toast('تاریخ پایان نباید پیش از تاریخ شروع باشد', 'error'); return; }
+
+                var targets = Array.prototype.slice
+                  .call(document.getElementById('dTargets').selectedOptions)
+                  .map(function (o) { return o.value; });
+                if (appliesTo !== 'all' && !targets.length) {
+                  Admin.toast('برای این دامنه، انتخاب حداقل یک هدف الزامی است', 'error');
+                  return;
+                }
+
+                await dataService.saveDiscount({
+                  id: data.id || undefined,
+                  code: code, type: type, value: value,
+                  minOrder: Number(Admin.toEn(document.getElementById('dMinOrder').value).replace(/[^\d]/g, '')) || 0,
+                  maxUses: Number(Admin.toEn(document.getElementById('dMaxUses').value)) || 1,
+                  perCustomer: Number(Admin.toEn(document.getElementById('dPerCustomer').value)) || 1,
+                  appliesTo: appliesTo, targetIds: targets,
+                  startDate: start, endDate: end,
+                  status: document.getElementById('dStatus').value
+                });
+
+                m.close();
+                await reload();
+                Admin.toast(isEdit ? 'کد تخفیف به‌روزرسانی شد' : 'کد تخفیف «' + code + '» ساخته شد');
+              }
+            }
+          ]
+        });
+
+        setTimeout(function () {
+          var typeSelect = document.getElementById('dType');
+          var appliesSelect = document.getElementById('dApplies');
+          var targetField = document.getElementById('dTargetField');
+          var targetSelect = document.getElementById('dTargets');
+
+          typeSelect.addEventListener('change', function () {
+            document.getElementById('dValueAffix').textContent =
+              typeSelect.value === 'percent' ? 'درصد' : 'تومان';
+          });
+
+          function fillTargets() {
+            var scope = appliesSelect.value;
+            targetField.hidden = scope === 'all';
+            if (scope === 'all') return;
+
+            var source = scope === 'category' ? categories : (scope === 'collection' ? collections : products);
+            targetSelect.innerHTML = source.map(function (item) {
+              var selected = (data.targetIds || []).indexOf(item.id) !== -1 ? ' selected' : '';
+              return '<option value="' + item.id + '"' + selected + '>' + Admin.escapeHtml(item.name) + '</option>';
+            }).join('');
+          }
+
+          appliesSelect.addEventListener('change', fillTargets);
+          fillTargets();
+
+          document.getElementById('dGen').addEventListener('click', function () {
+            var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            var out = 'HASTI';
+            for (var i = 0; i < 4; i++) out += chars[Math.floor(Math.random() * chars.length)];
+            document.getElementById('dCode').value = out;
+          });
+        }, 130);
+      }
+
+      /* ============================== کمپین‌ها ========================== */
+      function renderCampaigns() {
+        var grid = document.getElementById('campaignGrid');
+        if (!campaigns.length) {
+          grid.innerHTML = '';
+          grid.appendChild(Admin.emptyState({
+            icon: 'sparkle',
+            title: 'کمپینی ساخته نشده است',
+            desc: 'کمپین‌ها تخفیف را روی یک کالکشن در بازه زمانی مشخص اعمال می‌کنند.',
+            actionLabel: 'ساخت کمپین',
+            onAction: function () { campaignDialog(); }
+          }));
+          return;
+        }
+
+        grid.innerHTML = campaigns.map(function (c, i) {
+          var state = c.status === 'active' ? 'success' : (c.status === 'scheduled' ? 'info' : 'neutral');
+          return '<article class="card reveal" style="animation-delay:' + (i * 50) + 'ms">' +
+            '<div class="card__body">' +
+            '<div class="row row--between mb-2">' +
+            Admin.genericStatus(c.status) +
+            '<span class="badge badge--gold">' + Admin.percent(c.discount) + ' تخفیف</span>' +
+            '</div>' +
+            '<h3 style="font-size:15px;color:var(--c-jet);margin-bottom:6px">' + Admin.escapeHtml(c.name) + '</h3>' +
+            '<p class="text-xs text-muted mb-2">کالکشن هدف: ' + Admin.escapeHtml(c.collectionName) + '</p>' +
+            '<dl class="dl">' +
+            '<div class="dl__row"><dt>بازه اجرا</dt><dd class="num">' +
+            Admin.jShort(c.startDate) + ' تا ' + Admin.jShort(c.endDate) + '</dd></div>' +
+            '<div class="dl__row"><dt>درآمد کمپین</dt><dd>' + Admin.money(c.revenue) + '</dd></div>' +
+            '</dl>' +
+            '<div class="row row--tight mt-2">' +
+            '<button class="btn btn--ghost btn--sm" type="button" data-edit-camp="' + c.id + '" style="flex:1">' +
+            Admin.icon('edit') + '<span>ویرایش</span></button>' +
+            '<a class="btn btn--soft btn--sm" href="/admin/categories" style="flex:1">' +
+            Admin.icon('layers') + '<span>کالکشن</span></a>' +
+            '</div></div></article>';
+        }).join('');
+
+        grid.querySelectorAll('[data-edit-camp]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            campaignDialog(campaigns.filter(function (c) {
+              return c.id === btn.getAttribute('data-edit-camp');
+            })[0]);
+          });
+        });
+      }
+
+      function campaignDialog(c) {
+        var isEdit = !!c;
+        var data = c || {
+          id: '', name: '', collectionId: collections[0] ? collections[0].id : '',
+          discount: 15, startDate: dataService.today(), endDate: '1403-12-29', status: 'scheduled'
+        };
+
+        Admin.modal({
+          title: isEdit ? 'ویرایش کمپین' : 'ساخت کمپین مناسبتی',
+          icon: 'sparkle',
+          body:
+            '<div class="form-grid">' +
+            '<div class="field field--full"><label class="label" for="cName">نام کمپین <span class="req">*</span></label>' +
+            '<input class="input" id="cName" value="' + Admin.escapeHtml(data.name) + '" ' +
+            'placeholder="مثال: جشنواره پایان تابستان"></div>' +
+            '<div class="field field--full"><label class="label" for="cCollection">کالکشن هدف</label>' +
+            '<select class="select" id="cCollection">' +
+            collections.map(function (col) {
+              return '<option value="' + col.id + '"' + (data.collectionId === col.id ? ' selected' : '') + '>' +
+                Admin.escapeHtml(col.name) + '</option>';
+            }).join('') + '</select></div>' +
+            '<div class="field"><label class="label" for="cDiscount">درصد تخفیف</label>' +
+            '<div class="input-group"><input class="input num" type="number" id="cDiscount" min="1" max="100" ' +
+            'value="' + data.discount + '"><span class="input-group__affix">درصد</span></div></div>' +
+            '<div class="field"><label class="label" for="cStatus">وضعیت</label>' +
+            '<select class="select" id="cStatus">' +
+            ['active', 'scheduled', 'expired'].map(function (s) {
+              return '<option value="' + s + '"' + (data.status === s ? ' selected' : '') + '>' +
+                Admin.GENERIC_STATUS[s].label + '</option>';
+            }).join('') + '</select></div>' +
+            '<div class="field"><label class="label" for="cStart">تاریخ شروع</label>' +
+            '<input class="input ltr" id="cStart" value="' + data.startDate + '"></div>' +
+            '<div class="field"><label class="label" for="cEnd">تاریخ پایان</label>' +
+            '<input class="input ltr" id="cEnd" value="' + data.endDate + '"></div>' +
+            '</div>',
+          actions: [
+            { label: 'انصراف', variant: 'btn--ghost', onClick: function (m) { m.close(); } },
+            {
+              label: isEdit ? 'ذخیره تغییرات' : 'ساخت کمپین', variant: 'btn--primary',
+              onClick: async function (m) {
+                var name = document.getElementById('cName').value.trim();
+                var start = Admin.toEn(document.getElementById('cStart').value.trim());
+                var end = Admin.toEn(document.getElementById('cEnd').value.trim());
+                if (!name) { Admin.toast('نام کمپین الزامی است', 'error'); return; }
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+                  Admin.toast('تاریخ‌ها باید با قالب ۱۴۰۳-۰۷-۱۴ وارد شوند', 'error');
+                  return;
+                }
+                if (end < start) { Admin.toast('تاریخ پایان نباید پیش از تاریخ شروع باشد', 'error'); return; }
+
+                await dataService.saveCampaign({
+                  id: data.id || undefined,
+                  name: name,
+                  collectionId: document.getElementById('cCollection').value,
+                  discount: Number(Admin.toEn(document.getElementById('cDiscount').value)) || 0,
+                  startDate: start, endDate: end,
+                  status: document.getElementById('cStatus').value
+                });
+
+                m.close();
+                await reload();
+                Admin.toast(isEdit ? 'کمپین به‌روزرسانی شد' : 'کمپین ساخته شد');
+              }
+            }
+          ]
+        });
+      }
+    
+}

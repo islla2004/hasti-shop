@@ -1,0 +1,18 @@
+import { useEffect } from 'react';
+import { initUsers } from '../inits/initUsers.js';
+
+const HTML = "<div class=\"page-head\">\r\n        <div>\r\n          <nav class=\"breadcrumb\" aria-label=\"مسیر صفحه\">\r\n            <a href=\"/admin\">داشبورد</a>\r\n            <span aria-hidden=\"true\">/</span>\r\n            <span>کاربران و دسترسی</span>\r\n          </nav>\r\n          <h1 class=\"page-title\">کاربران و دسترسی</h1>\r\n          <p class=\"page-sub\">\r\n            هر همکار فقط به ماژول‌های مرتبط با نقش خود دسترسی داشته باشد — اصل کمینه دسترسی.\r\n          </p>\r\n        </div>\r\n        <div class=\"page-head__actions\">\r\n          <button class=\"btn btn--ghost btn--sm\" type=\"button\" id=\"exportLogBtn\">برون‌بری گزارش فعالیت</button>\r\n          <button class=\"btn btn--gold btn--sm\" type=\"button\" id=\"addUserBtn\">افزودن کاربر</button>\r\n        </div>\r\n      </div>\r\n\r\n      <div class=\"grid grid--kpi mb-3\" id=\"userKpis\"></div>\r\n\r\n      <div class=\"tabs mb-3\" id=\"userTabs\">\r\n        <button class=\"tab tab--active\" type=\"button\" data-panel=\"users\" aria-pressed=\"true\">کاربران ادمین</button>\r\n        <button class=\"tab\" type=\"button\" data-panel=\"permissions\" aria-pressed=\"false\">نقش و سطح دسترسی</button>\r\n        <button class=\"tab\" type=\"button\" data-panel=\"activity\" aria-pressed=\"false\">گزارش فعالیت</button>\r\n      </div>\r\n\r\n      <section class=\"tab-panel tab-panel--active\" data-panel=\"users\">\r\n        <div class=\"card\">\r\n          <div id=\"userTable\"></div>\r\n        </div>\r\n      </section>\r\n\r\n      <section class=\"tab-panel\" data-panel=\"permissions\">\r\n        <div class=\"notice notice--warning mb-3\">\r\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\">\r\n            <path d=\"M10.3 3.4 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.4a2 2 0 0 0-3.4 0z\" />\r\n            <path d=\"M12 9v4M12 17h0\" />\r\n          </svg>\r\n          <div>\r\n            <b>اعمال واقعی دسترسی نیازمند سرور است</b>\r\n            <div class=\"text-sm\">\r\n              این جدول ماتریس دسترسی را مدیریت می‌کند؛ کنترل نهایی باید سمت سرور نیز بررسی شود.\r\n            </div>\r\n          </div>\r\n        </div>\r\n\r\n        <div class=\"grid grid--3 mb-3\" id=\"roleCards\"></div>\r\n\r\n        <section class=\"card\">\r\n          <div class=\"card__head\">\r\n            <div>\r\n              <h2 class=\"card__title\">ماتریس دسترسی</h2>\r\n              <p class=\"card__sub\">برای هر نقش و ماژول یکی از سه سطح نوشتن، خواندن یا بی‌دسترسی را انتخاب کنید</p>\r\n            </div>\r\n            <div class=\"row row--tight\">\r\n              <button class=\"btn btn--ghost btn--sm\" type=\"button\" id=\"resetPermBtn\">بازگردانی</button>\r\n              <button class=\"btn btn--gold btn--sm\" type=\"button\" id=\"savePermBtn\">ذخیره دسترسی‌ها</button>\r\n            </div>\r\n          </div>\r\n          <div class=\"table-wrap\">\r\n            <table class=\"table\" id=\"permTable\"></table>\r\n          </div>\r\n        </section>\r\n      </section>\r\n\r\n      <section class=\"tab-panel\" data-panel=\"activity\">\r\n        <div class=\"card\">\r\n          <div id=\"activityTable\"></div>\r\n        </div>\r\n      </section>";
+
+export default function UsersPage() {
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      
+      if (!alive) return;
+      await initUsers();
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  return <div dangerouslySetInnerHTML={{ __html: HTML }} />;
+}

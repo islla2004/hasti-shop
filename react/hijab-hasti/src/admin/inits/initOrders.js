@@ -1,0 +1,430 @@
+import { Admin } from '../adminShared.js';
+import { dataService } from '../data/dataService.js';
+import { HASTI_MOCK } from '../data/mockData.js';
+
+export async function initOrders() {
+
+
+      var orders = [];
+      var tableApi = null;
+      var statusFilter = '';
+
+      (async function init() {
+        await Admin.shell("orders");
+        Admin.tableSkeleton('#orderTable', 7);
+
+        orders = await dataService.getOrders();
+        statusFilter = Admin.param('status') || '';
+
+        renderKpis();
+        renderStatusTabs();
+        buildTable();
+        bindActions();
+      })();
+
+      /* ============================== KPI ها ============================ */
+      function renderKpis() {
+        var pending = count('pending');
+        var processing = count('processing');
+        var shipped = count('shipped');
+        var revenue = orders
+          .filter(function (o) { return o.orderStatus !== 'cancelled' && o.orderStatus !== 'returned'; })
+          .reduce(function (s, o) { return s + o.finalAmount; }, 0);
+        var receivable = orders.reduce(function (s, o) { return s + o.payment.remaining; }, 0);
+
+        var cards = [
+          { label: 'در انتظار تایید', value: Admin.fa(pending), unit: 'سفارش', icon: 'clock', tone: 'warning' },
+          { label: 'در حال آماده‌سازی و ارسال', value: Admin.fa(processing + shipped), unit: 'سفارش', icon: 'truck', tone: 'info' },
+          { label: 'ارزش کل سفارش‌ها', value: Admin.moneyShort(revenue), unit: 'تومان', icon: 'banknote', tone: 'success' },
+          { label: 'مانده قابل دریافت', value: Admin.moneyShort(receivable), unit: 'تومان', icon: 'wallet', tone: 'danger' }
+        ];
+
+        document.getElementById('orderKpis').innerHTML = cards.map(function (c, i) {
+          return '<article class="kpi reveal" style="animation-delay:' + (i * 50) + 'ms">' +
+            '<div class="kpi__top"><span class="kpi__label">' + Admin.escapeHtml(c.label) + '</span>' +
+            '<span class="kpi__icon kpi__icon--' + c.tone + '">' + Admin.icon(c.icon) + '</span></div>' +
+            '<div class="kpi__value">' + c.value + '<small>' + c.unit + '</small></div></article>';
+        }).join('');
+      }
+
+      function count(status) {
+        return orders.filter(function (o) { return o.orderStatus === status; }).length;
+      }
+
+      /* ========================== تب‌های وضعیت ========================== */
+      function renderStatusTabs() {
+        var tabs = [{ key: '', label: 'همه سفارش‌ها', n: orders.length }].concat(
+          Object.keys(Admin.ORDER_STATUS).map(function (k) {
+            return { key: k, label: Admin.ORDER_STATUS[k].label, n: count(k) };
+          })
+        );
+
+        document.getElementById('statusTabs').innerHTML = tabs.map(function (t) {
+          return '<button class="tab' + (t.key === statusFilter ? ' tab--active' : '') + '" role="tab" ' +
+            'aria-selected="' + (t.key === statusFilter) + '" data-status="' + t.key + '">' +
+            Admin.escapeHtml(t.label) + '<span class="tab__count">' + Admin.fa(t.n) + '</span></button>';
+        }).join('');
+
+        Admin.$$('#statusTabs [data-status]').forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            statusFilter = tab.getAttribute('data-status');
+            renderStatusTabs();
+            tableApi.setRows(visibleRows());
+          });
+        });
+      }
+
+      function visibleRows() {
+        return statusFilter
+          ? orders.filter(function (o) { return o.orderStatus === statusFilter; })
+          : orders;
+      }
+
+      /* ============================== جدول ============================= */
+      function buildTable() {
+        tableApi = Admin.table({
+          mount: '#orderTable',
+          rows: visibleRows(),
+          rowKey: 'orderNumber',
+          pageSize: 10,
+          selectable: true,
+          searchKeys: ['orderNumber', 'customerName', 'customerPhone', 'trackingCode'],
+          searchPlaceholder: 'جست‌وجو با شماره سفارش، نام مشتری، موبایل یا کد رهگیری…',
+          defaultSort: { key: 'createdAt', dir: 'desc' },
+          onRowClick: function (o) {
+            window.location.href = '/admin/orders/' + encodeURIComponent(o.orderNumber);
+          },
+          filters: [
+            {
+              key: 'planType', label: 'نوع پرداخت',
+              options: Object.keys(Admin.PLAN_TYPE).map(function (k) {
+                return { value: k, label: Admin.PLAN_TYPE[k].label };
+              }),
+              match: function (o, v) { return o.paymentPlan.type === v; }
+            },
+            {
+              key: 'paymentStatus', label: 'وضعیت پرداخت',
+              options: Object.keys(Admin.PAYMENT_STATUS).map(function (k) {
+                return { value: k, label: Admin.PAYMENT_STATUS[k].label };
+              }),
+              match: function (o, v) { return o.payment.status === v; }
+            },
+            {
+              key: 'period', label: 'بازه زمانی',
+              options: [
+                { value: '7', label: '۷ روز گذشته' },
+                { value: '30', label: '۳۰ روز گذشته' },
+                { value: '90', label: '۹۰ روز گذشته' }
+              ],
+              match: function (o, v) {
+                var diff = dataService.daysBetween(o.createdAt, dataService.today());
+                return diff <= Number(v);
+              }
+            },
+            {
+              key: 'shippingType', label: 'نحوه تحویل',
+              options: [
+                { value: 'post', label: 'ارسال پستی' },
+                { value: 'pickup', label: 'تحویل حضوری' }
+              ],
+              match: function (o, v) { return o.shipping.type === v; }
+            }
+          ],
+          bulkActions: [
+            { label: 'تایید و آماده‌سازی', icon: 'box', variant: 'btn--soft', onClick: function (ids) { bulkStatus(ids, 'processing'); } },
+            { label: 'ثبت ارسال', icon: 'truck', variant: 'btn--soft', onClick: function (ids) { bulkStatus(ids, 'shipped'); } },
+            { label: 'چاپ فاکتور', icon: 'printer', variant: 'btn--soft', onClick: bulkPrint }
+          ],
+          empty: {
+            icon: 'cart',
+            title: 'سفارشی در این وضعیت وجود ندارد',
+            desc: 'با تغییر فیلترها یا انتخاب وضعیت دیگر، سفارش‌های بیشتری را ببینید.'
+          },
+          columns: [
+            {
+              key: 'orderNumber', label: 'شماره سفارش', sortable: true,
+              render: function (o) {
+                return '<a class="fw-bold ltr" style="color:var(--c-jet);text-decoration:underline" ' +
+                  'href="/admin/orders/' + encodeURIComponent(o.orderNumber) + '">' +
+                  Admin.escapeHtml(o.orderNumber) + '</a>' +
+                  '<span class="cell-sub">' + Admin.jShort(o.createdAt) + '</span>';
+              }
+            },
+            {
+              key: 'customerName', label: 'مشتری', sortable: true,
+              render: function (o) {
+                return '<b>' + Admin.escapeHtml(o.customerName) + '</b>' +
+                  '<span class="cell-sub ltr">' + Admin.fa(o.customerPhone) + '</span>';
+              }
+            },
+            {
+              key: 'itemsCount', label: 'اقلام', sortable: true, className: 'num',
+              render: function (o) {
+                return '<b>' + Admin.fa(o.itemsCount) + ' عدد</b>' +
+                  '<span class="cell-sub">' + Admin.fa(o.items.length) + ' قلم کالا</span>';
+              }
+            },
+            {
+              key: 'finalAmount', label: 'مبلغ نهایی', sortable: true, className: 'num',
+              render: function (o) {
+                return '<b>' + Admin.fa(Admin.price(o.finalAmount)) + '</b>' +
+                  '<span class="cell-sub">تومان</span>';
+              }
+            },
+            {
+              key: 'planType', label: 'نوع پرداخت', sortable: true,
+              sortValue: function (o) { return o.paymentPlan.type; },
+              render: function (o) {
+                return Admin.planType(o.paymentPlan.type) +
+                  (o.paymentPlan.type === 'installment'
+                    ? '<span class="cell-sub">' + Admin.fa(o.paymentPlan.installments.length) + ' قسط</span>' : '');
+              }
+            },
+            {
+              key: 'paymentStatus', label: 'وضعیت پرداخت', sortable: true,
+              sortValue: function (o) { return o.payment.status; },
+              render: function (o) {
+                var html = Admin.paymentStatus(o.payment.status);
+                if (o.payment.remaining > 0) {
+                  html += '<span class="cell-sub">مانده ' + Admin.money(o.payment.remaining) + '</span>';
+                }
+                /* نوار پیشرفت پرداخت — درک سریع وضعیت اقساط */
+                html += '<span class="bar" style="margin-top:5px"><span class="bar__fill' +
+                  (o.payment.status === 'overdue' ? ' bar__fill--danger' : ' bar__fill--success') +
+                  '" style="width:' + o.payment.progress + '%"></span></span>';
+                return html;
+              }
+            },
+            {
+              key: 'orderStatus', label: 'وضعیت سفارش', sortable: true,
+              render: function (o) {
+                return Admin.orderStatus(o.orderStatus) +
+                  (o.trackingCode ? '<span class="cell-sub ltr">' + Admin.escapeHtml(o.trackingCode) + '</span>' : '');
+              }
+            },
+            {
+              key: 'actions', label: 'عملیات', className: 'col-actions',
+              render: function (o) {
+                return '<div class="cell-actions">' +
+                  '<a class="act-btn" href="/admin/orders/' + encodeURIComponent(o.orderNumber) + '" ' +
+                  'title="جزئیات سفارش" aria-label="جزئیات سفارش ' + Admin.escapeHtml(o.orderNumber) + '">' +
+                  Admin.icon('eye') + '</a>' +
+                  '<button class="act-btn" type="button" data-status-btn="' + Admin.escapeHtml(o.orderNumber) + '" ' +
+                  'title="تغییر وضعیت" aria-label="تغییر وضعیت سفارش">' + Admin.icon('refresh') + '</button>' +
+                  '<a class="act-btn" target="_blank" rel="noopener" title="پیام واتساپ" aria-label="ارسال پیام واتساپ" href="' +
+                  Admin.whatsappLink(o.customerPhone, waText(o)) + '">' + Admin.icon('whatsapp') + '</a>' +
+                  '<button class="act-btn" type="button" data-print="' + Admin.escapeHtml(o.orderNumber) + '" ' +
+                  'title="چاپ فاکتور" aria-label="چاپ فاکتور">' + Admin.icon('printer') + '</button>' +
+                  '</div>';
+              }
+            }
+          ]
+        });
+      }
+
+      function waText(o) {
+        return 'سلام ' + o.customerName + ' عزیز، سفارش شما با شماره ' + o.orderNumber +
+          ' در فروشگاه هستی ' + (Admin.ORDER_STATUS[o.orderStatus] || {}).label + ' است.';
+      }
+
+      /* ============================== اقدام‌ها ========================== */
+      function bindActions() {
+        document.getElementById('orderTable').addEventListener('click', function (e) {
+          var statusBtn = e.target.closest('[data-status-btn]');
+          var printBtn = e.target.closest('[data-print]');
+          if (statusBtn) {
+            e.stopPropagation();
+            statusDialog(statusBtn.getAttribute('data-status-btn'));
+          }
+          if (printBtn) {
+            e.stopPropagation();
+            printInvoice([printBtn.getAttribute('data-print')]);
+          }
+        });
+
+        document.getElementById('exportBtn').addEventListener('click', function () {
+          Admin.exportCsv('hasti-orders.csv', [
+            { label: 'شماره سفارش', key: 'orderNumber' },
+            { label: 'تاریخ ثبت', key: 'createdAt' },
+            { label: 'نام مشتری', key: 'customerName' },
+            { label: 'موبایل', key: 'customerPhone' },
+            { label: 'نحوه تحویل', value: function (o) { return o.shipping.type === 'pickup' ? 'تحویل حضوری' : 'ارسال پستی'; } },
+            { label: 'نشانی', value: function (o) { return o.shipping.address; } },
+            { label: 'مبلغ اقلام', key: 'itemsTotal' },
+            { label: 'تخفیف', key: 'discountAmount' },
+            { label: 'هزینه ارسال', value: function (o) { return o.shipping.cost; } },
+            { label: 'مبلغ نهایی', key: 'finalAmount' },
+            { label: 'نوع پرداخت', value: function (o) { return (Admin.PLAN_TYPE[o.paymentPlan.type] || {}).label; } },
+            { label: 'پرداخت‌شده', value: function (o) { return o.payment.paid; } },
+            { label: 'مانده', value: function (o) { return o.payment.remaining; } },
+            { label: 'وضعیت پرداخت', value: function (o) { return (Admin.PAYMENT_STATUS[o.payment.status] || {}).label; } },
+            { label: 'وضعیت سفارش', value: function (o) { return (Admin.ORDER_STATUS[o.orderStatus] || {}).label; } },
+            { label: 'کد رهگیری', key: 'trackingCode' }
+          ], tableApi.getFiltered());
+        });
+
+        document.getElementById('printListBtn').addEventListener('click', function () {
+          printList(tableApi.getFiltered());
+        });
+      }
+
+      function statusDialog(orderNumber) {
+        var order = orders.filter(function (o) { return o.orderNumber === orderNumber; })[0];
+
+        Admin.modal({
+          title: 'تغییر وضعیت سفارش ' + orderNumber,
+          subtitle: order.customerName + ' — ' + Admin.money(order.finalAmount),
+          icon: 'refresh',
+          body:
+            '<div class="field mb-2"><label class="label" for="newStatus">وضعیت جدید</label>' +
+            '<select class="select" id="newStatus">' +
+            Object.keys(Admin.ORDER_STATUS).map(function (k) {
+              return '<option value="' + k + '"' + (k === order.orderStatus ? ' selected' : '') + '>' +
+                Admin.ORDER_STATUS[k].label + '</option>';
+            }).join('') + '</select></div>' +
+            '<div class="field" id="trackingField"' + (order.orderStatus === 'shipped' ? '' : ' hidden') + '>' +
+            '<label class="label" for="trackingCode">کد رهگیری پست</label>' +
+            '<input class="input ltr" id="trackingCode" value="' + Admin.escapeHtml(order.trackingCode || '') + '" ' +
+            'placeholder="24 رقم">' +
+            '<span class="hint">پس از ثبت، کد رهگیری برای مشتری قابل پیگیری خواهد بود.</span></div>' +
+            (order.payment.remaining > 0
+              ? '<div class="notice notice--warning mt-2">' + Admin.icon('alert') +
+              '<span><b>مانده پرداخت</b>این سفارش ' + Admin.money(order.payment.remaining) +
+              ' مانده دارد. پیش از ارسال، وضعیت پرداخت را بررسی کنید.</span></div>'
+              : ''),
+          actions: [
+            { label: 'انصراف', variant: 'btn--ghost', onClick: function (m) { m.close(); } },
+            {
+              label: 'ثبت تغییر', variant: 'btn--primary', onClick: async function (m) {
+                var status = document.getElementById('newStatus').value;
+                var tracking = document.getElementById('trackingCode').value.trim();
+                if (status === 'shipped' && !tracking) {
+                  Admin.toast('برای وضعیت «ارسال شده» ثبت کد رهگیری الزامی است', 'error');
+                  return;
+                }
+                await dataService.updateOrderStatus(orderNumber, status);
+                if (tracking) await dataService.updateOrderTracking(orderNumber, tracking, 'پست پیشتاز');
+                m.close();
+                await reload();
+                Admin.toast('وضعیت سفارش ' + orderNumber + ' به «' +
+                  Admin.ORDER_STATUS[status].label + '» تغییر یافت');
+              }
+            }
+          ]
+        });
+
+        setTimeout(function () {
+          var select = document.getElementById('newStatus');
+          select.addEventListener('change', function () {
+            document.getElementById('trackingField').hidden = select.value !== 'shipped';
+          });
+        }, 120);
+      }
+
+      async function bulkStatus(ids, status) {
+        var ok = await Admin.confirm({
+          title: 'تغییر گروهی وضعیت',
+          icon: 'refresh',
+          message: 'وضعیت <b>' + Admin.fa(ids.length) + '</b> سفارش انتخاب‌شده به «' +
+            Admin.ORDER_STATUS[status].label + '» تغییر کند؟',
+          confirmLabel: 'اعمال تغییر'
+        });
+        if (!ok) return;
+
+        await Promise.all(ids.map(function (id) {
+          return dataService.updateOrderStatus(id, status);
+        }));
+        await reload();
+        Admin.toast('وضعیت ' + Admin.fa(ids.length) + ' سفارش به‌روزرسانی شد');
+      }
+
+      function bulkPrint(ids) {
+        printInvoice(ids);
+      }
+
+      async function reload() {
+        orders = await dataService.getOrders();
+        renderKpis();
+        renderStatusTabs();
+        tableApi.setRows(visibleRows());
+      }
+
+      /* ========================== چاپ فاکتور و فهرست ==================== */
+      function printInvoice(orderNumbers) {
+        var selected = orders.filter(function (o) { return orderNumbers.indexOf(o.orderNumber) !== -1; });
+        var html = selected.map(function (o) {
+          var rows = o.items.map(function (it) {
+            return '<tr><td>' + it.productName + '</td><td>' + it.color + ' / ' + it.size +
+              (it.length ? ' / قد ' + Admin.fa(it.length) : '') + '</td>' +
+              '<td>' + Admin.fa(it.qty) + '</td>' +
+              '<td>' + Admin.money(it.unitPrice) + '</td>' +
+              '<td>' + Admin.money(it.lineTotal) + '</td></tr>';
+          }).join('');
+
+          return '<section class="invoice">' +
+            '<header><h1>فروشگاه هستی</h1>' +
+            '<div>فاکتور فروش — شماره سفارش <b dir="ltr">' + o.orderNumber + '</b></div>' +
+            '<div>تاریخ: ' + Admin.jDate(o.createdAt) + '</div></header>' +
+            '<div class="meta"><div><b>مشتری:</b> ' + o.customerName + ' — ' + Admin.fa(o.customerPhone) + '</div>' +
+            '<div><b>نشانی:</b> ' + o.shipping.address + '</div>' +
+            '<div><b>نحوه تحویل:</b> ' +
+            (o.shipping.type === 'pickup' ? 'تحویل حضوری' : 'ارسال با ' + (o.shipping.carrier || 'پست')) + '</div>' +
+            '<div><b>نوع پرداخت:</b> ' + (Admin.PLAN_TYPE[o.paymentPlan.type] || {}).label + '</div></div>' +
+            '<table><thead><tr><th>کالا</th><th>مشخصات</th><th>تعداد</th><th>قیمت واحد</th><th>مبلغ</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody></table>' +
+            '<div class="totals">' +
+            '<div>جمع اقلام: <b>' + Admin.money(o.itemsTotal) + '</b></div>' +
+            (o.discountAmount ? '<div>تخفیف: <b>' + Admin.money(o.discountAmount) + '</b></div>' : '') +
+            '<div>هزینه ارسال: <b>' + (o.shipping.cost ? Admin.money(o.shipping.cost) : 'رایگان') + '</b></div>' +
+            '<div class="grand">مبلغ نهایی: <b>' + Admin.money(o.finalAmount) + '</b></div>' +
+            '<div>پرداخت‌شده: <b>' + Admin.money(o.payment.paid) + '</b> — مانده: <b>' +
+            Admin.money(o.payment.remaining) + '</b></div>' +
+            '</div>' +
+            '<footer>با تشکر از خرید شما — هستی، پوشش باوقار ایرانی · واتساپ ۰۹۱۵۲۵۰۰۵۵۳</footer>' +
+            '</section>';
+        }).join('');
+
+        openPrintWindow('فاکتور فروش', html);
+      }
+
+      function printList(rows) {
+        var body = rows.map(function (o) {
+          return '<tr><td dir="ltr">' + o.orderNumber + '</td><td>' + Admin.jShort(o.createdAt) + '</td>' +
+            '<td>' + o.customerName + '</td><td>' + Admin.fa(o.customerPhone) + '</td>' +
+            '<td>' + Admin.money(o.finalAmount) + '</td>' +
+            '<td>' + (Admin.ORDER_STATUS[o.orderStatus] || {}).label + '</td></tr>';
+        }).join('');
+
+        openPrintWindow('فهرست سفارش‌ها',
+          '<section class="invoice"><header><h1>فهرست سفارش‌ها — فروشگاه هستی</h1>' +
+          '<div>تاریخ چاپ: ' + Admin.jDate(dataService.today()) + ' — ' + Admin.fa(rows.length) + ' سفارش</div></header>' +
+          '<table><thead><tr><th>شماره سفارش</th><th>تاریخ</th><th>مشتری</th><th>موبایل</th>' +
+          '<th>مبلغ نهایی</th><th>وضعیت</th></tr></thead><tbody>' + body + '</tbody></table></section>');
+      }
+
+      function openPrintWindow(title, content) {
+        var win = window.open('', '_blank');
+        win.document.write(
+          '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>' + title + '</title>' +
+          '<style>' +
+          '@font-face{font-family:Sahel;src:url("../Sahel.woff2") format("woff2");font-display:swap}' +
+          'body{font-family:Sahel,Tahoma,sans-serif;color:#0a0908;padding:24px;font-size:12px}' +
+          '.invoice{page-break-after:always;max-width:760px;margin:0 auto 30px}' +
+          'header{border-bottom:2px solid #c6ac8f;padding-bottom:12px;margin-bottom:14px}' +
+          'h1{font-size:19px;margin:0 0 6px;color:#22333b}' +
+          '.meta{background:#faf7f2;padding:12px;border-radius:8px;margin-bottom:14px;line-height:2}' +
+          'table{width:100%;border-collapse:collapse;margin-bottom:14px}' +
+          'th,td{border:1px solid #e6ddd0;padding:8px;text-align:right}' +
+          'th{background:#f4efe7;font-weight:700}' +
+          '.totals{line-height:2.1;text-align:left}' +
+          '.totals .grand{font-size:14px;color:#22333b;border-top:1px dashed #c6ac8f;padding-top:6px;margin-top:6px}' +
+          'footer{margin-top:18px;padding-top:10px;border-top:1px dashed #c6ac8f;text-align:center;color:#5e503f}' +
+          '@media print{body{padding:0}}' +
+          '</style></head><body>' + content + '</body></html>'
+        );
+        win.document.close();
+        win.focus();
+        win.print();
+      }
+    
+}

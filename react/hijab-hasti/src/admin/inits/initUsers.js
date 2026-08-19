@@ -1,0 +1,514 @@
+import { Admin } from '../adminShared.js';
+import { dataService } from '../data/dataService.js';
+import { HASTI_MOCK } from '../data/mockData.js';
+
+export async function initUsers() {
+
+
+      var users = [], roles = [], modules = [], perms = {}, activity = [];
+      var userApi = null, activityApi = null;
+      var currentUser = null;
+
+      var LEVELS = {
+        write: { label: 'نوشتن', tone: 'success', icon: 'edit' },
+        read: { label: 'فقط خواندن', tone: 'info', icon: 'eye' },
+        none: { label: 'بی‌دسترسی', tone: 'neutral', icon: 'lock' }
+      };
+
+      (async function init() {
+        await Admin.shell("users");
+        Admin.tableSkeleton('#userTable', 5);
+        currentUser = dataService.getCurrentUser();
+
+        var res = await Promise.all([
+          dataService.getAdminUsers(),
+          dataService.getRoles(),
+          dataService.getModules(),
+          dataService.getRolePermissions(),
+          dataService.getActivityLog()
+        ]);
+        users = res[0];
+        roles = res[1];
+        modules = res[2];
+        perms = res[3];
+        activity = res[4];
+
+        bindTabs();
+        renderKpis();
+        buildUserTable();
+        renderRoleCards();
+        renderPermTable();
+        buildActivityTable();
+
+        document.getElementById('addUserBtn').addEventListener('click', function () { userDialog(); });
+        document.getElementById('savePermBtn').addEventListener('click', savePermissions);
+        document.getElementById('resetPermBtn').addEventListener('click', async function () {
+          perms = await dataService.getRolePermissions();
+          renderPermTable();
+          Admin.toast('ماتریس دسترسی بازگردانی شد', 'info');
+        });
+        document.getElementById('exportLogBtn').addEventListener('click', exportLog);
+      })();
+
+      function bindTabs() {
+        var tabs = document.querySelectorAll('#userTabs .tab');
+        tabs.forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            var key = tab.getAttribute('data-panel');
+            tabs.forEach(function (t) {
+              var on = t === tab;
+              t.classList.toggle('tab--active', on);
+              t.setAttribute('aria-pressed', String(on));
+            });
+            document.querySelectorAll('.tab-panel').forEach(function (p) {
+              p.classList.toggle('tab-panel--active', p.getAttribute('data-panel') === key);
+            });
+          });
+        });
+      }
+
+      /* ============================== KPI ها ============================ */
+      function renderKpis() {
+        var active = users.filter(function (u) { return u.active; });
+        var lastLogins = users.map(function (u) { return u.lastLogin; })
+          .filter(function (d) { return d && d !== '—'; }).sort();
+
+        var cards = [
+          {
+            label: 'کاربران فعال', value: Admin.fa(active.length), unit: 'کاربر',
+            icon: 'shield', tone: 'success',
+            note: Admin.fa(users.length - active.length) + ' کاربر غیرفعال'
+          },
+          {
+            label: 'نقش‌های تعریف‌شده', value: Admin.fa(roles.length), unit: 'نقش',
+            icon: 'key', tone: 'info',
+            note: Admin.fa(modules.length) + ' ماژول قابل کنترل'
+          },
+          {
+            label: 'مدیران کل', value: Admin.fa(users.filter(function (u) { return u.role === 'super'; }).length),
+            unit: 'کاربر', icon: 'crown', tone: 'warning',
+            note: 'دسترسی کامل به همه بخش‌ها'
+          },
+          {
+            label: 'آخرین ورود', value: lastLogins.length ? Admin.jShort(lastLogins[lastLogins.length - 1]) : '—',
+            unit: '', icon: 'clock', tone: '',
+            note: Admin.fa(activity.length) + ' فعالیت ثبت‌شده'
+          }
+        ];
+
+        document.getElementById('userKpis').innerHTML = cards.map(function (c, i) {
+          return '<article class="kpi reveal" style="animation-delay:' + (i * 50) + 'ms">' +
+            '<div class="kpi__top"><span class="kpi__label">' + Admin.escapeHtml(c.label) + '</span>' +
+            '<span class="kpi__icon' + (c.tone ? ' kpi__icon--' + c.tone : '') + '">' + Admin.icon(c.icon) + '</span></div>' +
+            '<div class="kpi__value">' + c.value + (c.unit ? '<small>' + c.unit + '</small>' : '') + '</div>' +
+            '<div class="kpi__foot"><span>' + Admin.escapeHtml(c.note) + '</span></div>' +
+            '</article>';
+        }).join('');
+      }
+
+      /* =========================== جدول کاربران ======================== */
+      function buildUserTable() {
+        userApi = Admin.table({
+          mount: '#userTable',
+          rows: users,
+          rowKey: 'id',
+          pageSize: 10,
+          searchKeys: ['name', 'phone', 'email', 'roleName'],
+          searchPlaceholder: 'جست‌وجو با نام، شماره یا ایمیل…',
+          defaultSort: { key: 'name', dir: 'asc' },
+          filters: [
+            {
+              key: 'role', label: 'نقش',
+              options: roles.map(function (r) { return { value: r.id, label: r.name }; })
+            },
+            {
+              key: 'active', label: 'وضعیت',
+              options: [
+                { value: 'yes', label: 'فعال' },
+                { value: 'no', label: 'غیرفعال' }
+              ],
+              match: function (u, v) { return v === 'yes' ? !!u.active : !u.active; }
+            }
+          ],
+          actions: [
+            {
+              label: 'برون‌بری', icon: 'download', variant: 'btn--ghost',
+              onClick: function (api) {
+                Admin.exportCsv('hasti-admin-users.csv', [
+                  { label: 'نام', key: 'name' },
+                  { label: 'شماره تماس', key: 'phone' },
+                  { label: 'ایمیل', key: 'email' },
+                  { label: 'نقش', key: 'roleName' },
+                  { label: 'وضعیت', value: function (u) { return u.active ? 'فعال' : 'غیرفعال'; } },
+                  { label: 'آخرین ورود', key: 'lastLogin' }
+                ], api.getFiltered());
+              }
+            }
+          ],
+          empty: {
+            icon: 'shield',
+            title: 'کاربری ثبت نشده است',
+            desc: 'برای هر همکار یک حساب جداگانه با نقش مشخص بسازید.',
+            actionLabel: 'افزودن کاربر',
+            onAction: function () { userDialog(); }
+          },
+          columns: [
+            {
+              key: 'name', label: 'کاربر', sortable: true,
+              render: function (u) {
+                var initials = u.name.split(' ').map(function (p) { return p.charAt(0); })
+                  .slice(0, 2).join('');
+                return '<div class="cell-product">' +
+                  '<span class="avatar avatar--sm">' + Admin.escapeHtml(initials) + '</span>' +
+                  '<div><b>' + Admin.escapeHtml(u.name) +
+                  (u.id === currentUser.id ? ' <span class="badge badge--gold">شما</span>' : '') + '</b>' +
+                  '<small class="ltr">' + Admin.escapeHtml(u.email) + '</small></div></div>';
+              }
+            },
+            {
+              key: 'phone', label: 'شماره تماس',
+              render: function (u) { return '<span class="ltr">' + Admin.fa(u.phone) + '</span>'; }
+            },
+            {
+              key: 'roleName', label: 'نقش', sortable: true,
+              render: function (u) {
+                return Admin.badge(u.roleName, u.role === 'super' ? 'gold' : 'jet',
+                  u.role === 'super' ? 'crown' : 'key');
+              }
+            },
+            {
+              key: 'lastLogin', label: 'آخرین ورود', sortable: true,
+              render: function (u) {
+                return u.lastLogin && u.lastLogin !== '—'
+                  ? Admin.jShort(u.lastLogin)
+                  : '<span class="text-soft">هنوز وارد نشده</span>';
+              }
+            },
+            {
+              key: 'createdAt', label: 'تاریخ ایجاد', sortable: true,
+              render: function (u) { return Admin.jShort(u.createdAt); }
+            },
+            {
+              key: 'active', label: 'وضعیت', sortable: true,
+              render: function (u) {
+                return '<label class="switch" title="' + (u.active ? 'فعال' : 'غیرفعال') + '">' +
+                  '<input type="checkbox" data-toggle="' + u.id + '"' + (u.active ? ' checked' : '') +
+                  (u.id === currentUser.id ? ' disabled' : '') +
+                  ' aria-label="وضعیت ' + Admin.escapeHtml(u.name) + '">' +
+                  '<span class="switch__track"></span></label>';
+              }
+            },
+            {
+              key: 'actions', label: 'عملیات', className: 'col-actions',
+              render: function (u) {
+                return '<div class="cell-actions">' +
+                  '<button class="act-btn" type="button" data-edit="' + u.id + '" ' +
+                  'title="ویرایش" aria-label="ویرایش کاربر">' + Admin.icon('edit') + '</button>' +
+                  '<button class="act-btn" type="button" data-reset-pass="' + u.id + '" ' +
+                  'title="بازنشانی رمز" aria-label="بازنشانی رمز عبور">' + Admin.icon('key') + '</button>' +
+                  (u.id === currentUser.id ? ''
+                    : '<button class="act-btn act-btn--danger" type="button" data-delete="' + u.id + '" ' +
+                    'title="حذف" aria-label="حذف کاربر">' + Admin.icon('trash') + '</button>') +
+                  '</div>';
+              }
+            }
+          ]
+        });
+
+        var mount = document.getElementById('userTable');
+
+        mount.addEventListener('change', async function (e) {
+          var toggle = e.target.closest('[data-toggle]');
+          if (!toggle) return;
+          var user = findUser(toggle.getAttribute('data-toggle'));
+          await dataService.saveAdminUser({ id: user.id, active: toggle.checked });
+          await reloadUsers();
+          Admin.toast('حساب ' + user.name + (toggle.checked ? ' فعال شد' : ' غیرفعال شد'));
+        });
+
+        mount.addEventListener('click', async function (e) {
+          var edit = e.target.closest('[data-edit]');
+          var reset = e.target.closest('[data-reset-pass]');
+          var del = e.target.closest('[data-delete]');
+
+          if (edit) userDialog(findUser(edit.getAttribute('data-edit')));
+
+          if (reset) {
+            var target = findUser(reset.getAttribute('data-reset-pass'));
+            var ok = await Admin.confirm({
+              title: 'بازنشانی رمز عبور', icon: 'key',
+              message: 'یک رمز موقت برای «<b>' + Admin.escapeHtml(target.name) +
+                '</b>» ساخته شود؟ رمز از طریق پیامک ارسال می‌شود.',
+              confirmLabel: 'ساخت رمز موقت'
+            });
+            if (!ok) return;
+            /* TODO(backend): ساخت و ارسال رمز موقت نیازمند سرویس سمت سرور است. */
+            Admin.toast('رمز موقت برای ' + target.name + ' ارسال شد');
+          }
+
+          if (del) {
+            var user = findUser(del.getAttribute('data-delete'));
+            var confirmed = await Admin.confirm({
+              title: 'حذف کاربر', danger: true, icon: 'trash',
+              message: 'حساب «<b>' + Admin.escapeHtml(user.name) +
+                '</b>» حذف شود؟ دسترسی این کاربر بلافاصله قطع می‌شود.',
+              confirmLabel: 'حذف حساب'
+            });
+            if (!confirmed) return;
+            await dataService.deleteAdminUser(user.id);
+            await reloadUsers();
+            Admin.toast('کاربر حذف شد');
+          }
+        });
+      }
+
+      function findUser(id) {
+        return users.filter(function (u) { return u.id === id; })[0];
+      }
+
+      async function reloadUsers() {
+        users = await dataService.getAdminUsers();
+        renderKpis();
+        userApi.setRows(users);
+        renderRoleCards();
+      }
+
+      function userDialog(user) {
+        var isEdit = !!user;
+        var data = user || { id: '', name: '', phone: '', email: '', role: 'support', active: true };
+
+        Admin.modal({
+          title: isEdit ? 'ویرایش کاربر' : 'افزودن کاربر ادمین',
+          subtitle: isEdit ? data.name : 'برای هر همکار حساب جداگانه بسازید',
+          icon: 'shield',
+          body:
+            '<div class="form-grid">' +
+            '<div class="field"><label class="label" for="auName">نام و نام خانوادگی <span class="req">*</span></label>' +
+            '<input class="input" id="auName" value="' + Admin.escapeHtml(data.name) + '"></div>' +
+            '<div class="field"><label class="label" for="auPhone">شماره موبایل <span class="req">*</span></label>' +
+            '<input class="input ltr" id="auPhone" inputmode="tel" value="' +
+            Admin.fa(data.phone) + '"></div>' +
+            '<div class="field field--full"><label class="label" for="auEmail">ایمیل</label>' +
+            '<input class="input ltr" id="auEmail" type="email" value="' +
+            Admin.escapeHtml(data.email) + '"></div>' +
+            '<div class="field field--full"><label class="label" for="auRole">نقش <span class="req">*</span></label>' +
+            '<select class="select" id="auRole">' +
+            roles.map(function (r) {
+              return '<option value="' + r.id + '"' + (data.role === r.id ? ' selected' : '') + '>' +
+                Admin.escapeHtml(r.name) + ' — ' + Admin.escapeHtml(r.description) + '</option>';
+            }).join('') + '</select></div>' +
+            (isEdit ? '' :
+              '<div class="field field--full"><label class="label" for="auPass">رمز عبور موقت <span class="req">*</span></label>' +
+              '<input class="input ltr" id="auPass" type="text" placeholder="حداقل ۸ نویسه">' +
+              '<span class="hint">کاربر در نخستین ورود باید رمز را تغییر دهد.</span></div>') +
+            '<div class="field field--full">' +
+            '<label class="row row--tight" style="cursor:pointer">' +
+            '<span class="switch"><input type="checkbox" id="auActive"' + (data.active ? ' checked' : '') +
+            '><span class="switch__track"></span></span>' +
+            '<span class="text-sm">حساب فعال باشد</span></label></div>' +
+            '</div>',
+          actions: [
+            { label: 'انصراف', variant: 'btn--ghost', onClick: function (m) { m.close(); } },
+            {
+              label: isEdit ? 'ذخیره' : 'افزودن کاربر', variant: 'btn--primary',
+              onClick: async function (m) {
+                var name = document.getElementById('auName').value.trim();
+                var phone = Admin.toEn(document.getElementById('auPhone').value).replace(/\D/g, '');
+                var email = document.getElementById('auEmail').value.trim();
+                var passField = document.getElementById('auPass');
+
+                if (!name) { Admin.toast('نام کاربر الزامی است', 'error'); return; }
+                if (!/^09\d{9}$/.test(phone)) {
+                  Admin.toast('شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود', 'error');
+                  return;
+                }
+                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                  Admin.toast('ایمیل وارد‌شده معتبر نیست', 'error');
+                  return;
+                }
+                var duplicate = users.filter(function (u) {
+                  return u.phone === phone && u.id !== data.id;
+                }).length;
+                if (duplicate) { Admin.toast('این شماره موبایل قبلاً ثبت شده است', 'error'); return; }
+                if (passField && passField.value.trim().length < 8) {
+                  Admin.toast('رمز عبور موقت باید حداقل ۸ نویسه باشد', 'error');
+                  return;
+                }
+
+                await dataService.saveAdminUser({
+                  id: data.id || undefined,
+                  name: name,
+                  phone: phone,
+                  email: email,
+                  role: document.getElementById('auRole').value,
+                  active: document.getElementById('auActive').checked
+                });
+
+                m.close();
+                await reloadUsers();
+                Admin.toast(isEdit ? 'کاربر به‌روزرسانی شد' : 'کاربر افزوده شد');
+              }
+            }
+          ]
+        });
+      }
+
+      /* ============================ کارت نقش‌ها ======================== */
+      function renderRoleCards() {
+        document.getElementById('roleCards').innerHTML = roles.map(function (r) {
+          var list = users.filter(function (u) { return u.role === r.id; });
+          var rolePerm = perms[r.id] || {};
+          var writeCount = Object.keys(rolePerm).filter(function (k) {
+            return rolePerm[k] === 'write';
+          }).length;
+          var readCount = Object.keys(rolePerm).filter(function (k) {
+            return rolePerm[k] === 'read';
+          }).length;
+
+          return '<article class="card card--pad">' +
+            '<div class="row row--between mb-2">' +
+            '<b>' + Admin.escapeHtml(r.name) + '</b>' +
+            Admin.badge(Admin.fa(list.length) + ' کاربر', 'neutral', 'users') + '</div>' +
+            '<p class="text-sm text-soft">' + Admin.escapeHtml(r.description) + '</p>' +
+            '<div class="row row--tight mt-2">' +
+            Admin.badge(Admin.fa(writeCount) + ' نوشتن', 'success', 'edit') +
+            Admin.badge(Admin.fa(readCount) + ' خواندن', 'info', 'eye') +
+            '</div>' +
+            (list.length
+              ? '<div class="chips mt-2">' + list.map(function (u) {
+                return '<span class="chip">' + Admin.escapeHtml(u.name) + '</span>';
+              }).join('') + '</div>'
+              : '<p class="hint mt-2">کاربری با این نقش وجود ندارد.</p>') +
+            '</article>';
+        }).join('');
+      }
+
+      /* ========================== ماتریس دسترسی ======================= */
+      function renderPermTable() {
+        var head = '<thead><tr><th>ماژول</th>' + roles.map(function (r) {
+          return '<th>' + Admin.escapeHtml(r.name) + '</th>';
+        }).join('') + '</tr></thead>';
+
+        var body = '<tbody>' + modules.map(function (mod) {
+          return '<tr><td data-label="ماژول"><b class="text-sm">' +
+            Admin.escapeHtml(mod.name) + '</b></td>' +
+            roles.map(function (r) {
+              var value = (perms[r.id] || {})[mod.id] || 'none';
+              var locked = r.id === 'super';
+              return '<td data-label="' + Admin.escapeHtml(r.name) + '">' +
+                '<select class="select" data-role="' + r.id + '" data-module="' + mod.id + '" ' +
+                'style="min-height:36px;font-size:12px"' + (locked ? ' disabled' : '') +
+                ' aria-label="دسترسی ' + Admin.escapeHtml(r.name) + ' به ' + Admin.escapeHtml(mod.name) + '">' +
+                Object.keys(LEVELS).map(function (k) {
+                  return '<option value="' + k + '"' + (value === k ? ' selected' : '') + '>' +
+                    LEVELS[k].label + '</option>';
+                }).join('') + '</select></td>';
+            }).join('') + '</tr>';
+        }).join('') + '</tbody>';
+
+        document.getElementById('permTable').innerHTML = head + body;
+      }
+
+      async function savePermissions() {
+        var next = {};
+        roles.forEach(function (r) {
+          next[r.id] = Object.assign({}, perms[r.id]);
+        });
+
+        Admin.$$('#permTable select').forEach(function (sel) {
+          var role = sel.getAttribute('data-role');
+          var mod = sel.getAttribute('data-module');
+          if (!next[role]) next[role] = {};
+          next[role][mod] = sel.value;
+        });
+
+        await dataService.saveRolePermissions(next);
+        perms = await dataService.getRolePermissions();
+        renderRoleCards();
+        Admin.toast('ماتریس دسترسی ذخیره شد');
+      }
+
+      /* ========================== گزارش فعالیت ======================== */
+      function buildActivityTable() {
+        activityApi = Admin.table({
+          mount: '#activityTable',
+          rows: activity,
+          rowKey: 'id',
+          pageSize: 10,
+          searchKeys: ['user', 'action', 'target'],
+          searchPlaceholder: 'جست‌وجو در گزارش فعالیت…',
+          defaultSort: { key: 'at', dir: 'desc' },
+          filters: [
+            {
+              key: 'user', label: 'کاربر',
+              options: uniqueUsers()
+            },
+            {
+              key: 'module', label: 'ماژول',
+              options: modules.map(function (m) { return { value: m.id, label: m.name }; })
+            }
+          ],
+          empty: {
+            icon: 'activity',
+            title: 'فعالیتی ثبت نشده است',
+            desc: 'تغییرات کاربران پنل در این گزارش ثبت می‌شود.'
+          },
+          columns: [
+            {
+              key: 'user', label: 'کاربر', sortable: true,
+              render: function (a) {
+                var initials = a.user.split(' ').map(function (p) { return p.charAt(0); })
+                  .slice(0, 2).join('');
+                return '<div class="cell-product">' +
+                  '<span class="avatar avatar--sm">' + Admin.escapeHtml(initials) + '</span>' +
+                  '<div><b>' + Admin.escapeHtml(a.user) + '</b></div></div>';
+              }
+            },
+            { key: 'action', label: 'عملیات', sortable: true },
+            {
+              key: 'target', label: 'مورد',
+              render: function (a) {
+                return '<span class="text-sm text-soft">' + Admin.escapeHtml(a.target) + '</span>';
+              }
+            },
+            {
+              key: 'module', label: 'ماژول', sortable: true,
+              render: function (a) {
+                var m = modules.filter(function (x) { return x.id === a.module; })[0];
+                return Admin.badge(m ? m.name : a.module, 'neutral', 'layers');
+              }
+            },
+            {
+              key: 'at', label: 'زمان', sortable: true,
+              render: function (a) {
+                var parts = String(a.at).split(' ');
+                return Admin.jShort(parts[0]) +
+                  (parts[1] ? '<div class="cell-sub">' + Admin.fa(parts[1]) + '</div>' : '');
+              }
+            }
+          ]
+        });
+      }
+
+      function uniqueUsers() {
+        var seen = {};
+        activity.forEach(function (a) { seen[a.user] = true; });
+        return Object.keys(seen).map(function (u) { return { value: u, label: u }; });
+      }
+
+      function exportLog() {
+        Admin.exportCsv('hasti-activity-log.csv', [
+          { label: 'کاربر', key: 'user' },
+          { label: 'عملیات', key: 'action' },
+          { label: 'مورد', key: 'target' },
+          {
+            label: 'ماژول', value: function (a) {
+              var m = modules.filter(function (x) { return x.id === a.module; })[0];
+              return m ? m.name : a.module;
+            }
+          },
+          { label: 'زمان', key: 'at' }
+        ], activityApi.getFiltered());
+      }
+    
+}
