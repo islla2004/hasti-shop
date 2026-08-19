@@ -1,0 +1,21 @@
+# GitHub language stats should reflect the shop (JS/HTML/CSS), not AI skill copies.
+.agents/** linguist-vendored
+.augment/** linguist-vendored
+.claude/** linguist-vendored
+.codebuddy/** linguist-vendored
+.codex/** linguist-vendored
+.continue/** linguist-vendored
+.cursor/** linguist-vendored
+.factory/** linguist-vendored
+.gemini/** linguist-vendored
+.github/** linguist-vendored
+.kilocode/** linguist-vendored
+.kiro/** linguist-vendored
+.opencode/** linguist-vendored
+.qoder/** linguist-vendored
+.roo/** linguist-vendored
+.trae/** linguist-vendored
+.warp/** linguist-vendored
+.windsurf/** linguist-vendored
+*.py linguist-vendored
+admin/assets/vendor/** linguist-vendored
