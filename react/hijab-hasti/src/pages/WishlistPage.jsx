@@ -84,7 +84,6 @@ export default function WishlistPage() {
           <div className="scene__grain" aria-hidden="true" />
 
           <div className="scene__title">
-            <p className="scene__kicker">Atelier Privé</p>
             <h1 className="scene__h1" id="wishTitle">شاخه‌های علاقه‌مندی شما</h1>
           </div>
 
