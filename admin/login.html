@@ -83,717 +83,164 @@
   <script src="assets/data/mock-data.js"></script>
   <script src="assets/admin-shared.js"></script>
   <script src="assets/data/dataService.js"></script>
-   <script>
-(function () {
-  "use strict";
+  <script>
+    (function () {
+      "use strict";
+      var DEMO_PHONE = '09152500553';
+      var DEMO_PASSWORD = 'hasti1403';
 
-  /* =========================================================
-     DEMO LOGIN
-     ========================================================= */
+      var form = document.getElementById('loginForm');
+      var phone = document.getElementById('phone');
+      var password = document.getElementById('password');
+      var securityCode = document.getElementById('securityCode');
+      var securityChallenge = document.getElementById('securityChallenge');
+      var refreshSecurity = document.getElementById('refreshSecurity');
+      var errorBox = document.getElementById('loginError');
+      var loginBtn = document.getElementById('loginBtn');
+      var currentSecurityCode = '';
 
-  var DEMO_PHONE = "09152500553";
-  var DEMO_PASSWORD = "hasti1403";
+      function createSecurityCode() {
+        currentSecurityCode = String(Math.floor(10000 + Math.random() * 90000));
+        securityChallenge.textContent = Admin.fa(currentSecurityCode);
+        securityCode.value = '';
+        Admin.clearFieldError(securityCode);
+      }
 
-
-  /* =========================================================
-     ELEMENTS
-     ========================================================= */
-
-  var form = document.getElementById("loginForm");
-  var phone = document.getElementById("phone");
-  var password = document.getElementById("password");
-  var securityCode = document.getElementById("securityCode");
-  var securityChallenge = document.getElementById("securityChallenge");
-  var refreshSecurity = document.getElementById("refreshSecurity");
-  var errorBox = document.getElementById("loginError");
-  var loginBtn = document.getElementById("loginBtn");
-  var rememberCheckbox = document.getElementById("remember");
-  var pwToggle = document.getElementById("pwToggle");
-  var forgotLink = document.getElementById("forgotLink");
-
-  var currentSecurityCode = "";
-
-
-  /* =========================================================
-     CHECK REQUIRED ELEMENTS
-     ========================================================= */
-
-  if (
-    !form ||
-    !phone ||
-    !password ||
-    !securityCode ||
-    !securityChallenge ||
-    !refreshSecurity ||
-    !errorBox ||
-    !loginBtn
-  ) {
-    console.error(
-      "[Hasti Admin] Login elements not found."
-    );
-
-    return;
-  }
-
-
-  /* =========================================================
-     SECURITY CODE
-     ========================================================= */
-
-  function createSecurityCode() {
-
-    currentSecurityCode = String(
-      Math.floor(10000 + Math.random() * 90000)
-    );
-
-    securityChallenge.textContent =
-      typeof Admin !== "undefined" && Admin.fa
-        ? Admin.fa(currentSecurityCode)
-        : currentSecurityCode;
-
-    securityCode.value = "";
-
-    if (
-      typeof Admin !== "undefined" &&
-      typeof Admin.clearFieldError === "function"
-    ) {
-      Admin.clearFieldError(securityCode);
-    }
-  }
-
-
-  refreshSecurity.addEventListener(
-    "click",
-    function () {
-
+      refreshSecurity.addEventListener('click', function () {
+        createSecurityCode();
+        securityCode.focus();
+      });
       createSecurityCode();
 
-      securityCode.focus();
+      /* --- آمار نمایشی ستون برند --- */
+      (async function loadStats() {
+        var products = await dataService.getProducts();
+        var orders = await dataService.getOrders();
+        var customers = await dataService.getCustomers();
+        document.getElementById('statProducts').textContent =
+          Admin.fa(products.filter(function (p) { return p.status === 'published'; }).length);
+        document.getElementById('statOrders').textContent = Admin.fa(orders.length);
+        document.getElementById('statCustomers').textContent = Admin.fa(customers.length);
+      })();
 
-    }
-  );
+      /* hide/show password */
+      var pwToggle = document.getElementById('pwToggle');
+      pwToggle.innerHTML = Admin.icon('eye');
+      pwToggle.addEventListener('click', function () {
+        var isHidden = password.type === 'password';
+        password.type = isHidden ? 'text' : 'password';
+        pwToggle.innerHTML = Admin.icon(isHidden ? 'x' : 'eye');
+        pwToggle.setAttribute('aria-label', isHidden ? 'مخفی کردن رمز عبور' : 'نمایش رمز عبور');
+      });
 
-
-  createSecurityCode();
-
-
-  /* =========================================================
-     ERROR MESSAGE
-     ========================================================= */
-
-  function showError(message) {
-
-    var icon = "";
-
-    if (
-      typeof Admin !== "undefined" &&
-      typeof Admin.icon === "function"
-    ) {
-      icon = Admin.icon("alert");
-    }
-
-    errorBox.innerHTML =
-      icon +
-      "<span>" +
-      "<b>ورود ناموفق بود</b> " +
-      escapeHtml(message) +
-      "</span>";
-
-    errorBox.hidden = false;
-  }
-
-
-  function escapeHtml(text) {
-
-    return String(text)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-
-  /* =========================================================
-     CLEAR ERROR
-     ========================================================= */
-
-  function clearError() {
-
-    errorBox.hidden = true;
-
-    errorBox.innerHTML = "";
-  }
-
-
-  /* =========================================================
-     PHONE NORMALIZATION
-     ========================================================= */
-
-  function normalizePhone(value) {
-
-    value = String(value || "");
-
-    /*
-     * تبدیل اعداد فارسی و عربی به انگلیسی
-     */
-
-    var persian = "۰۱۲۳۴۵۶۷۸۹";
-    var arabic = "٠١٢٣٤٥٦٧٨٩";
-
-    for (var i = 0; i < 10; i++) {
-
-      value = value.replace(
-        new RegExp(persian[i], "g"),
-        String(i)
-      );
-
-      value = value.replace(
-        new RegExp(arabic[i], "g"),
-        String(i)
-      );
-    }
-
-    return value.replace(/\D/g, "");
-  }
-
-
-  /* =========================================================
-     PASSWORD VISIBILITY
-     ========================================================= */
-
-  if (pwToggle) {
-
-    if (
-      typeof Admin !== "undefined" &&
-      typeof Admin.icon === "function"
-    ) {
-      pwToggle.innerHTML =
-        Admin.icon("eye");
-    }
-
-    pwToggle.addEventListener(
-      "click",
-      function () {
-
-        var hidden =
-          password.type === "password";
-
-        password.type =
-          hidden ? "text" : "password";
-
-        if (
-          typeof Admin !== "undefined" &&
-          typeof Admin.icon === "function"
-        ) {
-
-          pwToggle.innerHTML =
-            Admin.icon(
-              hidden ? "x" : "eye"
-            );
-        }
-
-        pwToggle.setAttribute(
-          "aria-label",
-          hidden
-            ? "مخفی کردن رمز عبور"
-            : "نمایش رمز عبور"
-        );
-
-      }
-    );
-  }
-
-
-  /* =========================================================
-     INPUT EVENTS
-     ========================================================= */
-
-  [phone, password, securityCode].forEach(
-    function (field) {
-
-      field.addEventListener(
-        "input",
-        function () {
-
-          clearError();
-
-          if (
-            typeof Admin !== "undefined" &&
-            typeof Admin.clearFieldError === "function"
-          ) {
+      /* --- اعتبارسنجی روی blur، نه هر کلید --- */
+      [phone, password, securityCode].forEach(function (field) {
+        field.addEventListener('blur', function () {
+          if (!field.value.trim()) {
+            var message = field === phone
+              ? 'وارد کردن شماره موبایل الزامی است.'
+              : field === password
+                ? 'وارد کردن رمز عبور الزامی است.'
+                : 'وارد کردن کد امنیتی الزامی است.';
+            Admin.setFieldError(field, message);
+          } else {
             Admin.clearFieldError(field);
           }
+        });
+        field.addEventListener('input', function () {
+          Admin.clearFieldError(field);
+          errorBox.hidden = true;
+        });
+      });
 
-        }
-      );
-
-    }
-  );
-
-
-  /* =========================================================
-     FORM VALIDATION
-     ========================================================= */
-
-  function validateLogin() {
-
-    var enteredPhone =
-      normalizePhone(phone.value);
-
-    var enteredPassword =
-      String(password.value || "");
-
-    var enteredSecurity =
-      normalizePhone(securityCode.value);
-
-    /* PHONE */
-
-    if (!enteredPhone) {
-
-      showError(
-        "وارد کردن شماره موبایل الزامی است."
-      );
-
-      phone.focus();
-
-      return false;
-    }
-
-
-    if (!/^09\d{9}$/.test(enteredPhone)) {
-
-      showError(
-        "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود."
-      );
-
-      phone.focus();
-
-      return false;
-    }
-
-
-    /* PASSWORD */
-
-    if (!enteredPassword) {
-
-      showError(
-        "وارد کردن رمز عبور الزامی است."
-      );
-
-      password.focus();
-
-      return false;
-    }
-
-
-    if (enteredPassword.length < 6) {
-
-      showError(
-        "رمز عبور باید حداقل ۶ کاراکتر باشد."
-      );
-
-      password.focus();
-
-      return false;
-    }
-
-
-    /* SECURITY CODE */
-
-    if (!enteredSecurity) {
-
-      showError(
-        "وارد کردن کد امنیتی الزامی است."
-      );
-
-      securityCode.focus();
-
-      return false;
-    }
-
-
-    if (
-      enteredSecurity !==
-      currentSecurityCode
-    ) {
-
-      showError(
-        "کد امنیتی واردشده صحیح نیست."
-      );
-
-      createSecurityCode();
-
-      securityCode.focus();
-
-      return false;
-    }
-
-
-    return true;
-  }
-
-
-  /* =========================================================
-     LOGIN
-     ========================================================= */
-
-  form.addEventListener(
-    "submit",
-    function (event) {
-
-      event.preventDefault();
-
-      clearError();
-
-
-      /* -----------------------------------------
-         VALIDATION
-         ----------------------------------------- */
-
-      if (!validateLogin()) {
-        return;
+      function showError(message) {
+        errorBox.innerHTML = Admin.icon('alert') +
+          '<span><b>ورود ناموفق بود</b>' + Admin.escapeHtml(message) + '</span>';
+        errorBox.hidden = false;
       }
 
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        errorBox.hidden = true;
 
-      /* -----------------------------------------
-         LOADING
-         ----------------------------------------- */
-
-      loginBtn.disabled = true;
-
-      loginBtn.classList.add(
-        "btn--loading"
-      );
-
-
-      /* -----------------------------------------
-         DEMO LOGIN
-         ----------------------------------------- */
-
-      setTimeout(
-        function () {
-
-          var enteredPhone =
-            normalizePhone(phone.value);
-
-          var enteredPassword =
-            String(password.value || "");
-
-
-          /* =================================================
-             SUCCESS
-             ================================================= */
-
-          if (
-            enteredPhone === DEMO_PHONE &&
-            enteredPassword === DEMO_PASSWORD
-          ) {
-
-            console.log(
-              "[Hasti Admin] Login successful."
-            );
-
-
-            /* -----------------------------------------------
-               REMEMBER ME
-               ----------------------------------------------- */
-
-            if (
-              rememberCheckbox &&
-              rememberCheckbox.checked
-            ) {
-
-              localStorage.setItem(
-                "hasti_admin_remember",
-                "1"
-              );
-
-            } else {
-
-              localStorage.removeItem(
-                "hasti_admin_remember"
-              );
-            }
-
-
-            /* -----------------------------------------------
-               SESSION
-               ----------------------------------------------- */
-
-            sessionStorage.setItem(
-              "hasti_admin_session",
-              "demo"
-            );
-
-
-            /*
-             * ذخیره وضعیت احراز هویت
-             * برای جلوگیری از ناسازگاری با کدهای
-             * مختلف پروژه، چند کلید رایج را نگه می‌داریم.
-             */
-
-            localStorage.setItem(
-              "hasti_admin_auth",
-              "1"
-            );
-
-            localStorage.setItem(
-              "hasti_admin_logged_in",
-              "1"
-            );
-
-
-            /* -----------------------------------------------
-               DEBUG
-               ----------------------------------------------- */
-
-            console.log(
-              "[Hasti Admin] Session:",
-              sessionStorage.getItem(
-                "hasti_admin_session"
-              )
-            );
-
-            console.log(
-              "[Hasti Admin] Redirecting to index.html..."
-            );
-
-
-            /* -----------------------------------------------
-               REDIRECT
-               ----------------------------------------------- */
-
-            window.location.replace(
-              "index.html"
-            );
-
+        var valid = Admin.validateForm(form, {
+          phone: function (v) {
+            if (!String(v).trim()) return 'وارد کردن شماره موبایل الزامی است.';
+            var normalized = Admin.toEn(v).replace(/\D/g, '');
+            if (!/^09\d{9}$/.test(normalized)) return 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.';
+            return null;
+          },
+          password: function (v) {
+            if (!String(v).trim()) return 'وارد کردن رمز عبور الزامی است.';
+            if (String(v).length < 6) return 'رمز عبور باید حداقل ۶ کاراکتر باشد.';
+            return null;
+          },
+          securityCode: function (v) {
+            if (!String(v).trim()) return 'وارد کردن کد امنیتی الزامی است.';
+            if (Admin.toEn(v).replace(/\D/g, '') !== currentSecurityCode) return 'کد امنیتی واردشده صحیح نیست.';
+            return null;
           }
+        });
+        if (!valid) return;
 
-          /* =================================================
-             FAILED
-             ================================================= */
+        /* حالت loading روی دکمه تا کاربر بازخورد فوری بگیرد */
+        loginBtn.classList.add('btn--loading');
+        loginBtn.disabled = true;
 
-          else {
+        setTimeout(function () {
+          loginBtn.classList.remove('btn--loading');
+          loginBtn.disabled = false;
 
-            loginBtn.disabled = false;
+          var enteredPhone = Admin.toEn(phone.value).replace(/\D/g, '');
+          if (enteredPhone === DEMO_PHONE && password.value === DEMO_PASSWORD) {
+            /* TODO(backend): توکن نشست باید توسط سرور در کوکی HttpOnly ست شود.
+               این فلگ فقط برای جریان نمایشی UI است و ارزش امنیتی ندارد. */
+            if (document.getElementById('remember').checked) {
+              localStorage.setItem('hasti_admin_remember', '1');
+            }
+            sessionStorage.setItem('hasti_admin_session', 'demo');
 
-            loginBtn.classList.remove(
-              "btn--loading"
-            );
-
-
-            showError(
-              "شماره موبایل یا رمز عبور نادرست است."
-            );
-
-
-            password.value = "";
-
+            /* بازگشت به صفحه‌ای که کاربر پیش از ورود قصد دیدنش را داشت */
+            var next = Admin.param('next');
+            var safeNext = next && /^[a-zA-Z0-9_.-]+\.html(\?[^#]*)?$/.test(next) ? next : 'index.html';
+            window.location.href = safeNext;
+          } else {
+            showError('شماره موبایل یا رمز عبور نادرست است. لطفاً دوباره تلاش کنید.');
+            password.value = '';
             createSecurityCode();
-
             password.focus();
-
           }
+        }, 700);
+      });
 
-        },
-        500
-      );
+      document.getElementById('forgotLink').addEventListener('click', function (e) {
+        e.preventDefault();
+        Admin.modal({
+          title: 'بازیابی رمز عبور',
+          icon: 'key',
+          body: '<p>برای بازیابی رمز عبور با مدیر کل فروشگاه تماس بگیرید یا از طریق واتساپ ' +
+            '<span class="ltr fw-bold">۰۹۱۵۲۵۰۰۵۵۳</span> درخواست خود را ارسال کنید.</p>' +
+            '<p class="text-sm text-soft mt-2">در نسخه نهایی، بازیابی رمز از طریق کد یک‌بارمصرف پیامکی انجام خواهد شد.</p>',
+          actions: [{ label: 'متوجه شدم', variant: 'btn--primary', onClick: function (m) { m.close(); } }]
+        });
+      });
 
-    }
-  );
-
-
-  /* =========================================================
-     FORGOT PASSWORD
-     ========================================================= */
-
-  if (forgotLink) {
-
-    forgotLink.addEventListener(
-      "click",
-      function (event) {
-
-        event.preventDefault();
-
-        if (
-          typeof Admin !== "undefined" &&
-          typeof Admin.modal === "function"
-        ) {
-
-          Admin.modal({
-
-            title:
-              "بازیابی رمز عبور",
-
-            icon:
-              "key",
-
-            body:
-              "<p>" +
-              "برای بازیابی رمز عبور با مدیر کل فروشگاه تماس بگیرید." +
-              "</p>" +
-
-              "<p>" +
-              "شماره تماس: " +
-              "<strong>۰۹۱۵۲۵۰۰۵۵۳</strong>" +
-              "</p>",
-
-            actions: [
-              {
-                label:
-                  "متوجه شدم",
-
-                variant:
-                  "btn--primary",
-
-                onClick:
-                  function (modal) {
-                    modal.close();
-                  }
-              }
-            ]
-
-          });
-
-        } else {
-
-          alert(
-            "برای بازیابی رمز عبور با مدیر فروشگاه تماس بگیرید."
-          );
-
-        }
-
-      }
-    );
-
-  }
-
-
-  /* =========================================================
-     REMEMBER ME
-     ========================================================= */
-
-  if (
-    localStorage.getItem(
-      "hasti_admin_remember"
-    ) === "1"
-  ) {
-
-    phone.value =
-      DEMO_PHONE;
-
-    password.focus();
-
-  } else {
-
-    phone.focus();
-
-  }
-
-
-  /* =========================================================
-     OPTIONAL STATS
-     ========================================================= */
-
-  (async function loadStats() {
-
-    try {
-
-      if (
-        typeof dataService === "undefined" ||
-        !dataService
-      ) {
-        return;
+      /* اگر کاربر از یک صفحه محافظت‌شده به اینجا هدایت شده، دلیلش را بگوییم */
+      if (Admin.param('next')) {
+        errorBox.innerHTML = Admin.icon('lock') +
+          '<span><b>نیاز به ورود</b>برای دسترسی به آن صفحه ابتدا وارد حساب خود شوید.</span>';
+        errorBox.hidden = false;
       }
 
-
-      var products =
-        await dataService.getProducts();
-
-      var orders =
-        await dataService.getOrders();
-
-      var customers =
-        await dataService.getCustomers();
-
-
-      products =
-        Array.isArray(products)
-          ? products
-          : [];
-
-      orders =
-        Array.isArray(orders)
-          ? orders
-          : [];
-
-      customers =
-        Array.isArray(customers)
-          ? customers
-          : [];
-
-
-      var statProducts =
-        document.getElementById(
-          "statProducts"
-        );
-
-      var statOrders =
-        document.getElementById(
-          "statOrders"
-        );
-
-      var statCustomers =
-        document.getElementById(
-          "statCustomers"
-        );
-
-
-      if (statProducts) {
-
-        var published =
-          products.filter(
-            function (product) {
-
-              return (
-                product &&
-                product.status ===
-                "published"
-              );
-
-            }
-          ).length;
-
-        statProducts.textContent =
-          String(published);
+      /* پیش‌پر کردن شماره در صورت فعال بودن «مرا به خاطر بسپار» */
+      if (localStorage.getItem('hasti_admin_remember') === '1') {
+        phone.value = DEMO_PHONE;
+        password.focus();
+      } else {
+        phone.focus();
       }
+    })();
+  </script>
+</body>
 
-
-      if (statOrders) {
-
-        statOrders.textContent =
-          String(orders.length);
-      }
-
-
-      if (statCustomers) {
-
-        statCustomers.textContent =
-          String(customers.length);
-      }
-
-    } catch (error) {
-
-      console.warn(
-        "[Hasti Admin] Stats unavailable:",
-        error
-      );
-
-    }
-
-  })();
-
-
-})();
-</script>
+</html>
