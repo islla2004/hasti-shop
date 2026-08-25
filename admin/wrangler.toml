@@ -1,5 +1,1 @@
-name = "hasti-admin"
-compatibility_date = "2026-08-25"
 
-[assets]
-directory = "."
