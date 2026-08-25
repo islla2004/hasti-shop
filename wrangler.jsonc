@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hasti-shop-admin2",
+  "compatibility_date": "2026-08-25",
+  "assets": {
+    "directory": "./admin"
+  }
+}
