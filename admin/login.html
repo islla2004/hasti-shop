@@ -17,7 +17,7 @@
   <main class="login-main">
     <div class="login-card">
       <div class="login-card__brand">
-        <img src="../logo-transparent.png" alt="برند هستی" class="login-card__logo" width="220" height="154">
+        <img src="assets/logo-transparent.png" alt="برند هستی" class="login-card__logo" width="220" height="154">
         <span>دسترسی اختصاصی مدیریت</span>
       </div>
       <h2>ورود به پنل</h2>
@@ -83,164 +83,587 @@
   <script src="assets/data/mock-data.js"></script>
   <script src="assets/admin-shared.js"></script>
   <script src="assets/data/dataService.js"></script>
-  <script>
-    (function () {
-      "use strict";
-      var DEMO_PHONE = '09152500553';
-      var DEMO_PASSWORD = 'hasti1403';
+  ```html
+<script>
+  (function () {
+    "use strict";
 
-      var form = document.getElementById('loginForm');
-      var phone = document.getElementById('phone');
-      var password = document.getElementById('password');
-      var securityCode = document.getElementById('securityCode');
-      var securityChallenge = document.getElementById('securityChallenge');
-      var refreshSecurity = document.getElementById('refreshSecurity');
-      var errorBox = document.getElementById('loginError');
-      var loginBtn = document.getElementById('loginBtn');
-      var currentSecurityCode = '';
+    /* =========================================================
+       اطلاعات ورود نمایشی
+       ========================================================= */
+    var DEMO_PHONE = '09152500553';
+    var DEMO_PASSWORD = 'hasti1403';
 
-      function createSecurityCode() {
-        currentSecurityCode = String(Math.floor(10000 + Math.random() * 90000));
-        securityChallenge.textContent = Admin.fa(currentSecurityCode);
-        securityCode.value = '';
+
+    /* =========================================================
+       گرفتن عناصر صفحه
+       ========================================================= */
+    var form = document.getElementById('loginForm');
+    var phone = document.getElementById('phone');
+    var password = document.getElementById('password');
+    var securityCode = document.getElementById('securityCode');
+    var securityChallenge = document.getElementById('securityChallenge');
+    var refreshSecurity = document.getElementById('refreshSecurity');
+    var errorBox = document.getElementById('loginError');
+    var loginBtn = document.getElementById('loginBtn');
+    var rememberCheckbox = document.getElementById('remember');
+
+    var currentSecurityCode = '';
+
+
+    /* =========================================================
+       بررسی اولیه عناصر ضروری
+       ========================================================= */
+    if (!form || !phone || !password || !securityCode ||
+        !securityChallenge || !refreshSecurity || !errorBox || !loginBtn) {
+
+      console.error(
+        '[Hasti Admin] عناصر ضروری صفحه Login پیدا نشدند.'
+      );
+
+      return;
+    }
+
+
+    /* =========================================================
+       ساخت کد امنیتی
+       ========================================================= */
+    function createSecurityCode() {
+
+      currentSecurityCode = String(
+        Math.floor(10000 + Math.random() * 90000)
+      );
+
+      securityChallenge.textContent =
+        Admin.fa(currentSecurityCode);
+
+      securityCode.value = '';
+
+      if (typeof Admin.clearFieldError === 'function') {
         Admin.clearFieldError(securityCode);
       }
+    }
 
-      refreshSecurity.addEventListener('click', function () {
-        createSecurityCode();
-        securityCode.focus();
-      });
+
+    /* =========================================================
+       Refresh کد امنیتی
+       ========================================================= */
+    refreshSecurity.addEventListener('click', function () {
+
       createSecurityCode();
 
-      /* --- آمار نمایشی ستون برند --- */
-      (async function loadStats() {
+      securityCode.focus();
+    });
+
+
+    /* ساخت کد امنیتی اولیه */
+    createSecurityCode();
+
+
+    /* =========================================================
+       آمار نمایشی ستون برند
+       
+       مهم:
+       ممکن است statProducts / statOrders / statCustomers
+       در نسخه فعلی HTML وجود نداشته باشند.
+       
+       بنابراین قبل از استفاده بررسی می‌کنیم که عنصر وجود دارد.
+       ========================================================= */
+    (async function loadStats() {
+
+      try {
+
+        /* بررسی وجود dataService */
+        if (
+          typeof dataService === 'undefined' ||
+          !dataService
+        ) {
+          console.warn(
+            '[Hasti Admin] dataService در صفحه Login موجود نیست.'
+          );
+
+          return;
+        }
+
+
+        /* دریافت اطلاعات */
         var products = await dataService.getProducts();
         var orders = await dataService.getOrders();
         var customers = await dataService.getCustomers();
-        document.getElementById('statProducts').textContent =
-          Admin.fa(products.filter(function (p) { return p.status === 'published'; }).length);
-        document.getElementById('statOrders').textContent = Admin.fa(orders.length);
-        document.getElementById('statCustomers').textContent = Admin.fa(customers.length);
-      })();
 
-      /* hide/show password */
-      var pwToggle = document.getElementById('pwToggle');
-      pwToggle.innerHTML = Admin.icon('eye');
+
+        /* اگر API مقدار نامعتبر برگرداند */
+        products = Array.isArray(products) ? products : [];
+        orders = Array.isArray(orders) ? orders : [];
+        customers = Array.isArray(customers) ? customers : [];
+
+
+        /* -----------------------------------------------------
+           محصولات
+           ----------------------------------------------------- */
+        var statProducts =
+          document.getElementById('statProducts');
+
+        if (statProducts) {
+
+          var publishedProducts = products.filter(function (p) {
+            return p && p.status === 'published';
+          }).length;
+
+          statProducts.textContent =
+            Admin.fa(publishedProducts);
+        }
+
+
+        /* -----------------------------------------------------
+           سفارش‌ها
+           ----------------------------------------------------- */
+        var statOrders =
+          document.getElementById('statOrders');
+
+        if (statOrders) {
+
+          statOrders.textContent =
+            Admin.fa(orders.length);
+        }
+
+
+        /* -----------------------------------------------------
+           مشتریان
+           ----------------------------------------------------- */
+        var statCustomers =
+          document.getElementById('statCustomers');
+
+        if (statCustomers) {
+
+          statCustomers.textContent =
+            Admin.fa(customers.length);
+        }
+
+
+      } catch (error) {
+
+        /*
+         * خطای آمار نباید باعث خراب شدن Login شود.
+         */
+        console.warn(
+          '[Hasti Admin] دریافت آمار Login با خطا مواجه شد:',
+          error
+        );
+
+      }
+
+    })();
+
+
+    /* =========================================================
+       نمایش / مخفی کردن رمز عبور
+       ========================================================= */
+    var pwToggle =
+      document.getElementById('pwToggle');
+
+    if (pwToggle) {
+
+      pwToggle.innerHTML =
+        Admin.icon('eye');
+
       pwToggle.addEventListener('click', function () {
-        var isHidden = password.type === 'password';
-        password.type = isHidden ? 'text' : 'password';
-        pwToggle.innerHTML = Admin.icon(isHidden ? 'x' : 'eye');
-        pwToggle.setAttribute('aria-label', isHidden ? 'مخفی کردن رمز عبور' : 'نمایش رمز عبور');
+
+        var isHidden =
+          password.type === 'password';
+
+        password.type =
+          isHidden ? 'text' : 'password';
+
+        pwToggle.innerHTML =
+          Admin.icon(
+            isHidden ? 'x' : 'eye'
+          );
+
+        pwToggle.setAttribute(
+          'aria-label',
+          isHidden
+            ? 'مخفی کردن رمز عبور'
+            : 'نمایش رمز عبور'
+        );
+
       });
 
-      /* --- اعتبارسنجی روی blur، نه هر کلید --- */
-      [phone, password, securityCode].forEach(function (field) {
-        field.addEventListener('blur', function () {
-          if (!field.value.trim()) {
-            var message = field === phone
+    }
+
+
+    /* =========================================================
+       اعتبارسنجی هنگام Blur و Input
+       ========================================================= */
+    [phone, password, securityCode].forEach(function (field) {
+
+      field.addEventListener('blur', function () {
+
+        if (!field.value.trim()) {
+
+          var message =
+            field === phone
               ? 'وارد کردن شماره موبایل الزامی است.'
               : field === password
                 ? 'وارد کردن رمز عبور الزامی است.'
                 : 'وارد کردن کد امنیتی الزامی است.';
-            Admin.setFieldError(field, message);
-          } else {
-            Admin.clearFieldError(field);
+
+
+          if (typeof Admin.setFieldError === 'function') {
+
+            Admin.setFieldError(
+              field,
+              message
+            );
+
           }
-        });
-        field.addEventListener('input', function () {
-          Admin.clearFieldError(field);
-          errorBox.hidden = true;
-        });
+
+        } else {
+
+          if (typeof Admin.clearFieldError === 'function') {
+
+            Admin.clearFieldError(field);
+
+          }
+
+        }
+
       });
 
-      function showError(message) {
-        errorBox.innerHTML = Admin.icon('alert') +
-          '<span><b>ورود ناموفق بود</b>' + Admin.escapeHtml(message) + '</span>';
-        errorBox.hidden = false;
-      }
 
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
+      field.addEventListener('input', function () {
+
+        if (typeof Admin.clearFieldError === 'function') {
+
+          Admin.clearFieldError(field);
+
+        }
+
         errorBox.hidden = true;
 
-        var valid = Admin.validateForm(form, {
+      });
+
+    });
+
+
+    /* =========================================================
+       نمایش خطای Login
+       ========================================================= */
+    function showError(message) {
+
+      errorBox.innerHTML =
+        Admin.icon('alert') +
+        '<span>' +
+        '<b>ورود ناموفق بود</b>' +
+        Admin.escapeHtml(message) +
+        '</span>';
+
+      errorBox.hidden = false;
+    }
+
+
+    /* =========================================================
+       Submit فرم Login
+       ========================================================= */
+    form.addEventListener('submit', function (e) {
+
+      e.preventDefault();
+
+      errorBox.hidden = true;
+
+
+      /* -------------------------------------------------------
+         اعتبارسنجی فرم
+         ------------------------------------------------------- */
+      var valid =
+        Admin.validateForm(form, {
+
           phone: function (v) {
-            if (!String(v).trim()) return 'وارد کردن شماره موبایل الزامی است.';
-            var normalized = Admin.toEn(v).replace(/\D/g, '');
-            if (!/^09\d{9}$/.test(normalized)) return 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.';
-            return null;
-          },
-          password: function (v) {
-            if (!String(v).trim()) return 'وارد کردن رمز عبور الزامی است.';
-            if (String(v).length < 6) return 'رمز عبور باید حداقل ۶ کاراکتر باشد.';
-            return null;
-          },
-          securityCode: function (v) {
-            if (!String(v).trim()) return 'وارد کردن کد امنیتی الزامی است.';
-            if (Admin.toEn(v).replace(/\D/g, '') !== currentSecurityCode) return 'کد امنیتی واردشده صحیح نیست.';
-            return null;
-          }
-        });
-        if (!valid) return;
 
-        /* حالت loading روی دکمه تا کاربر بازخورد فوری بگیرد */
-        loginBtn.classList.add('btn--loading');
-        loginBtn.disabled = true;
+            if (!String(v).trim()) {
 
-        setTimeout(function () {
-          loginBtn.classList.remove('btn--loading');
-          loginBtn.disabled = false;
-
-          var enteredPhone = Admin.toEn(phone.value).replace(/\D/g, '');
-          if (enteredPhone === DEMO_PHONE && password.value === DEMO_PASSWORD) {
-            /* TODO(backend): توکن نشست باید توسط سرور در کوکی HttpOnly ست شود.
-               این فلگ فقط برای جریان نمایشی UI است و ارزش امنیتی ندارد. */
-            if (document.getElementById('remember').checked) {
-              localStorage.setItem('hasti_admin_remember', '1');
+              return 'وارد کردن شماره موبایل الزامی است.';
             }
-            sessionStorage.setItem('hasti_admin_session', 'demo');
 
-            /* بازگشت به صفحه‌ای که کاربر پیش از ورود قصد دیدنش را داشت */
-            var next = Admin.param('next');
-            var safeNext = next && /^[a-zA-Z0-9_.-]+\.html(\?[^#]*)?$/.test(next) ? next : 'index.html';
-            window.location.href = safeNext;
-          } else {
-            showError('شماره موبایل یا رمز عبور نادرست است. لطفاً دوباره تلاش کنید.');
-            password.value = '';
-            createSecurityCode();
-            password.focus();
+
+            var normalized =
+              Admin.toEn(v).replace(/\D/g, '');
+
+
+            if (!/^09\d{9}$/.test(normalized)) {
+
+              return 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.';
+            }
+
+
+            return null;
+          },
+
+
+          password: function (v) {
+
+            if (!String(v).trim()) {
+
+              return 'وارد کردن رمز عبور الزامی است.';
+            }
+
+
+            if (String(v).length < 6) {
+
+              return 'رمز عبور باید حداقل ۶ کاراکتر باشد.';
+            }
+
+
+            return null;
+          },
+
+
+          securityCode: function (v) {
+
+            if (!String(v).trim()) {
+
+              return 'وارد کردن کد امنیتی الزامی است.';
+            }
+
+
+            var enteredCode =
+              Admin.toEn(v).replace(/\D/g, '');
+
+
+            if (enteredCode !== currentSecurityCode) {
+
+              return 'کد امنیتی واردشده صحیح نیست.';
+            }
+
+
+            return null;
           }
-        }, 700);
-      });
 
-      document.getElementById('forgotLink').addEventListener('click', function (e) {
-        e.preventDefault();
-        Admin.modal({
-          title: 'بازیابی رمز عبور',
-          icon: 'key',
-          body: '<p>برای بازیابی رمز عبور با مدیر کل فروشگاه تماس بگیرید یا از طریق واتساپ ' +
-            '<span class="ltr fw-bold">۰۹۱۵۲۵۰۰۵۵۳</span> درخواست خود را ارسال کنید.</p>' +
-            '<p class="text-sm text-soft mt-2">در نسخه نهایی، بازیابی رمز از طریق کد یک‌بارمصرف پیامکی انجام خواهد شد.</p>',
-          actions: [{ label: 'متوجه شدم', variant: 'btn--primary', onClick: function (m) { m.close(); } }]
         });
-      });
 
-      /* اگر کاربر از یک صفحه محافظت‌شده به اینجا هدایت شده، دلیلش را بگوییم */
-      if (Admin.param('next')) {
-        errorBox.innerHTML = Admin.icon('lock') +
-          '<span><b>نیاز به ورود</b>برای دسترسی به آن صفحه ابتدا وارد حساب خود شوید.</span>';
-        errorBox.hidden = false;
+
+      if (!valid) {
+
+        return;
       }
 
-      /* پیش‌پر کردن شماره در صورت فعال بودن «مرا به خاطر بسپار» */
-      if (localStorage.getItem('hasti_admin_remember') === '1') {
-        phone.value = DEMO_PHONE;
-        password.focus();
-      } else {
-        phone.focus();
-      }
-    })();
-  </script>
-</body>
 
-</html>
+      /* -------------------------------------------------------
+         حالت Loading
+         ------------------------------------------------------- */
+      loginBtn.classList.add(
+        'btn--loading'
+      );
+
+      loginBtn.disabled = true;
+
+
+      /* -------------------------------------------------------
+         پردازش ورود
+         ------------------------------------------------------- */
+      setTimeout(function () {
+
+        loginBtn.classList.remove(
+          'btn--loading'
+        );
+
+        loginBtn.disabled = false;
+
+
+        var enteredPhone =
+          Admin.toEn(phone.value)
+            .replace(/\D/g, '');
+
+
+        /* =====================================================
+           ورود موفق
+           ===================================================== */
+        if (
+          enteredPhone === DEMO_PHONE &&
+          password.value === DEMO_PASSWORD
+        ) {
+
+
+          /* ---------------------------------------------------
+             Remember Me
+             --------------------------------------------------- */
+          if (
+            rememberCheckbox &&
+            rememberCheckbox.checked
+          ) {
+
+            localStorage.setItem(
+              'hasti_admin_remember',
+              '1'
+            );
+
+          } else {
+
+            localStorage.removeItem(
+              'hasti_admin_remember'
+            );
+
+          }
+
+
+          /* ---------------------------------------------------
+             Session
+             
+             فعلاً Demo است و امنیت واقعی ندارد.
+             --------------------------------------------------- */
+          sessionStorage.setItem(
+            'hasti_admin_session',
+            'demo'
+          );
+
+
+          /* ---------------------------------------------------
+             پیدا کردن صفحه مقصد
+             --------------------------------------------------- */
+          var next =
+            Admin.param('next');
+
+
+          /*
+           * فقط اجازه می‌دهیم به فایل‌های HTML داخل همین
+           * Admin Panel منتقل شویم.
+           */
+          var isSafeNext =
+            next &&
+            /^[a-zA-Z0-9_.-]+\.html(\?[^#]*)?$/.test(next);
+
+
+          /*
+           * اگر next معتبر بود همان صفحه را باز می‌کنیم.
+           * در غیر این صورت index.html مقصد پیش‌فرض است.
+           */
+          var safeNext =
+            isSafeNext
+              ? next
+              : 'index.html';
+
+
+          /* ---------------------------------------------------
+             Redirect
+             
+             ./ باعث می‌شود مسیر نسبت به همین پوشه admin
+             تفسیر شود.
+             --------------------------------------------------- */
+          window.location.href =
+            './' + safeNext;
+
+
+        } else {
+
+
+          /* ===================================================
+             ورود ناموفق
+             =================================================== */
+          showError(
+            'شماره موبایل یا رمز عبور نادرست است. لطفاً دوباره تلاش کنید.'
+          );
+
+
+          password.value = '';
+
+          createSecurityCode();
+
+          password.focus();
+
+        }
+
+      }, 700);
+
+    });
+
+
+    /* =========================================================
+       فراموشی رمز عبور
+       ========================================================= */
+    var forgotLink =
+      document.getElementById('forgotLink');
+
+    if (forgotLink) {
+
+      forgotLink.addEventListener(
+        'click',
+        function (e) {
+
+          e.preventDefault();
+
+
+          Admin.modal({
+
+            title: 'بازیابی رمز عبور',
+
+            icon: 'key',
+
+            body:
+              '<p>' +
+              'برای بازیابی رمز عبور با مدیر کل فروشگاه تماس بگیرید ' +
+              'یا از طریق واتساپ ' +
+              '<span class="ltr fw-bold">۰۹۱۵۲۵۰۰۵۵۳</span> ' +
+              'درخواست خود را ارسال کنید.' +
+              '</p>' +
+
+              '<p class="text-sm text-soft mt-2">' +
+              'در نسخه نهایی، بازیابی رمز از طریق کد یک‌بارمصرف پیامکی انجام خواهد شد.' +
+              '</p>',
+
+            actions: [
+              {
+                label: 'متوجه شدم',
+                variant: 'btn--primary',
+                onClick: function (m) {
+                  m.close();
+                }
+              }
+            ]
+
+          });
+
+        }
+      );
+
+    }
+
+
+    /* =========================================================
+       اگر کاربر از صفحه محافظت‌شده آمده باشد
+       ========================================================= */
+    if (Admin.param('next')) {
+
+      errorBox.innerHTML =
+        Admin.icon('lock') +
+        '<span>' +
+        '<b>نیاز به ورود</b>' +
+        'برای دسترسی به آن صفحه ابتدا وارد حساب خود شوید.' +
+        '</span>';
+
+      errorBox.hidden = false;
+    }
+
+
+    /* =========================================================
+       Remember Me
+       ========================================================= */
+    if (
+      localStorage.getItem(
+        'hasti_admin_remember'
+      ) === '1'
+    ) {
+
+      phone.value =
+        DEMO_PHONE;
+
+      password.focus();
+
+    } else {
+
+      phone.focus();
+
+    }
+
+
+  })();
+</script>
